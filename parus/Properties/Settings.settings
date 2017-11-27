@@ -11,13 +11,10 @@
     <Setting Name="settinsExternal_Ionogram" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="settinsExternal_Amplitudes" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="settinsExternal_Calibration" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
     <Setting Name="settingsCronConfig" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="settinsExternal_ObliqueIonogram" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
   </Settings>

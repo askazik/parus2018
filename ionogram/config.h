@@ -12,7 +12,6 @@
 #include <fstream>
 #include <ctime>
 
-#include "config.h"
 #include "tinyxml2.h"
 
 namespace XML = tinyxml2;
@@ -74,7 +73,7 @@ namespace parus {
 	// ===========================================================================
 	// Конфигурационный файл
 	// ===========================================================================
-	enum  Measurement { IONOGRAM, AMPLITUDES }; // перечисление для вариантов проведения эксперимента
+	enum  Measurement { IONOGRAM, AMPLITUDES}; // перечисление для вариантов проведения эксперимента
 
 	// Общие параметры для программирования устройства.
 	struct ionosounder { 

@@ -1,0 +1,43 @@
+
+#Ignore thumbnails created by Windows
+Thumbs.db
+#Ignore files built by Visual Studio
+[Bb]in
+[Dd]ebug*/
+[Rr]elease*/
+
+ionogram/[Rr]elease*/
+parus/[Rr]elease*/
+ionogram/[Dd]ebug*/
+parus/[Dd]ebug*/
+ionogram/[Bb]in/
+parus/[Bb]in/
+ionogram/obj/
+parus/obj/
+
+*.obj
+*.exe
+*.pdb
+*.user
+*.aps
+*.pch
+*.vspscc
+*_i.c
+*_p.c
+*.ncb
+*.suo
+*.tlb
+*.tlh
+*.bak
+*.cache
+*.ilk
+*.log
+*.lib
+*.sbr
+
+_ReSharper*/
+[Tt]est[Rr]esult*
+.vs/
+ipch/
+#Nuget packages folder
+packages/

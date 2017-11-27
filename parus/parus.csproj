@@ -78,7 +78,7 @@
     <Compile Include="FormExternal.Designer.cs">
       <DependentUpon>FormExternal.cs</DependentUpon>
     </Compile>
-    <Compile Include="HeightlightXML.cs">
+    <Compile Include="XmlWork.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="IonogramWork.cs" />
@@ -111,7 +111,6 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <None Include="app.config" />
-    <None Include="ClassDiagram1.cd" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

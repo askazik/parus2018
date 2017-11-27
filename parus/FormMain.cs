@@ -137,15 +137,6 @@ namespace parus
             string curDir = Properties.Settings.Default.settingsWorkingDirectory;
             if (Directory.Exists(curDir))
                 fill_listboxIonograms(curDir); // попробуем заполнить список ионограмм
-
-            string filename = Properties.Settings.Default.settingsXmlConfig;
-            if (Properties.Settings.Default.settingsXmlConfig.Length > 0)
-            {
-                richTextBox_XML.LoadFile(filename, RichTextBoxStreamType.PlainText);
-                HighlightColors.HighlightRTF(richTextBox_XML);
-            }
-            else
-                toolStripButtonXmlOpen_Click(sender, e);
         }
 
         private void toolStripButtonChangeDir_Click(object sender, EventArgs e)
@@ -215,15 +206,11 @@ namespace parus
             {
                 case 0:
                     filename = Properties.Settings.Default.settinsExternal_Ionogram;
-                    waitTime = xml.getMeasuringTime(Measuring.ionogram);
+                    waitTime = xml.getIonogramMeasuringTime() + xml.getAmplitudesMeasuringTime();
                     break;
                 case 1:
-                    filename = Properties.Settings.Default.settinsExternal_Amplitudes;
-                    waitTime = xml.getMeasuringTime(Measuring.amplitudes);
-                    break;
-                case 2:
-                    filename = Properties.Settings.Default.settinsExternal_Calibration;
-                    waitTime = xml.getMeasuringTime(Measuring.ionogram);
+                    filename = Properties.Settings.Default.settinsExternal_ObliqueIonogram;
+                    waitTime = xml.getIonogramMeasuringTime();
                     break;
             }
 
@@ -242,9 +229,6 @@ namespace parus
                     fill_listboxIonograms(Path.GetDirectoryName(filename));
                     break;
                 case 1:
-                    //
-                    break;
-                case 2:
                     //
                     break;
             }
@@ -267,6 +251,27 @@ namespace parus
         private void toolStripButtonCronTabSave_Click(object sender, EventArgs e)
         {
             richTextBox_tab.SaveFile(Properties.Settings.Default.settingsCronConfig, RichTextBoxStreamType.PlainText);
+        }
+
+        private void toolStripXML_Paint(object sender, PaintEventArgs e)
+        {
+            string filename = Properties.Settings.Default.settingsXmlConfig;
+            if (Properties.Settings.Default.settingsXmlConfig.Length > 0)
+            {
+                richTextBox_XML.LoadFile(filename, RichTextBoxStreamType.PlainText);
+                HighlightColors.HighlightRTF(richTextBox_XML);
+            }
+            else
+                toolStripButtonXmlOpen_Click(sender, e);
+        }
+
+        private void toolStripCron_Paint(object sender, PaintEventArgs e)
+        {
+            string filename = Properties.Settings.Default.settingsCronConfig;
+            if (Properties.Settings.Default.settingsCronConfig.Length > 0)
+                richTextBox_tab.LoadFile(filename, RichTextBoxStreamType.PlainText);
+            else
+                toolStripButtonCronTabOpen_Click(sender, e);
         }
 
     }

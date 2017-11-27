@@ -19,15 +19,13 @@ namespace parus
         private void FormExternal_Load(object sender, EventArgs e)
         {
             textBoxIonogram.Text = Properties.Settings.Default.settinsExternal_Ionogram;
-            textBoxAmplitudes.Text = Properties.Settings.Default.settinsExternal_Amplitudes;
-            textBoxCalibration.Text = Properties.Settings.Default.settinsExternal_Calibration;
+            textBoxObliqueIonogram.Text = Properties.Settings.Default.settinsExternal_ObliqueIonogram;
         }
 
         private void FormExternal_FormClosing(object sender, FormClosingEventArgs e)
         {
             Properties.Settings.Default.settinsExternal_Ionogram = textBoxIonogram.Text;
-            Properties.Settings.Default.settinsExternal_Amplitudes = textBoxAmplitudes.Text;
-            Properties.Settings.Default.settinsExternal_Calibration = textBoxCalibration.Text;
+            Properties.Settings.Default.settinsExternal_ObliqueIonogram = textBoxObliqueIonogram.Text;
             Properties.Settings.Default.Save();
         }
 
@@ -46,10 +44,7 @@ namespace parus
                     textBoxIonogram.Text = filename;
                     break;
                 case 1:
-                    textBoxAmplitudes.Text = filename;
-                    break;
-                case 2:
-                    textBoxCalibration.Text = filename;
+                    textBoxObliqueIonogram.Text = filename;
                     break;
             }
         }

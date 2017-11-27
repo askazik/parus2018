@@ -30,11 +30,8 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormExternal));
             this.panel1 = new System.Windows.Forms.Panel();
-            this.buttonCalibration = new System.Windows.Forms.Button();
-            this.textBoxCalibration = new System.Windows.Forms.TextBox();
-            this.label3 = new System.Windows.Forms.Label();
             this.buttonAmplitudes = new System.Windows.Forms.Button();
-            this.textBoxAmplitudes = new System.Windows.Forms.TextBox();
+            this.textBoxObliqueIonogram = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.buttonIonogram = new System.Windows.Forms.Button();
             this.textBoxIonogram = new System.Windows.Forms.TextBox();
@@ -45,11 +42,8 @@
             // 
             // panel1
             // 
-            this.panel1.Controls.Add(this.buttonCalibration);
-            this.panel1.Controls.Add(this.textBoxCalibration);
-            this.panel1.Controls.Add(this.label3);
             this.panel1.Controls.Add(this.buttonAmplitudes);
-            this.panel1.Controls.Add(this.textBoxAmplitudes);
+            this.panel1.Controls.Add(this.textBoxObliqueIonogram);
             this.panel1.Controls.Add(this.label2);
             this.panel1.Controls.Add(this.buttonIonogram);
             this.panel1.Controls.Add(this.textBoxIonogram);
@@ -57,35 +51,8 @@
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(501, 193);
+            this.panel1.Size = new System.Drawing.Size(501, 144);
             this.panel1.TabIndex = 0;
-            // 
-            // buttonCalibration
-            // 
-            this.buttonCalibration.Location = new System.Drawing.Point(456, 152);
-            this.buttonCalibration.Name = "buttonCalibration";
-            this.buttonCalibration.Size = new System.Drawing.Size(30, 20);
-            this.buttonCalibration.TabIndex = 8;
-            this.buttonCalibration.Tag = "2";
-            this.buttonCalibration.Text = "...";
-            this.buttonCalibration.UseVisualStyleBackColor = true;
-            this.buttonCalibration.Click += new System.EventHandler(this.button_Click);
-            // 
-            // textBoxCalibration
-            // 
-            this.textBoxCalibration.Location = new System.Drawing.Point(18, 152);
-            this.textBoxCalibration.Name = "textBoxCalibration";
-            this.textBoxCalibration.Size = new System.Drawing.Size(432, 20);
-            this.textBoxCalibration.TabIndex = 7;
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(19, 130);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(129, 13);
-            this.label3.TabIndex = 6;
-            this.label3.Text = "Программа калибровки";
             // 
             // buttonAmplitudes
             // 
@@ -98,21 +65,21 @@
             this.buttonAmplitudes.UseVisualStyleBackColor = true;
             this.buttonAmplitudes.Click += new System.EventHandler(this.button_Click);
             // 
-            // textBoxAmplitudes
+            // textBoxObliqueIonogram
             // 
-            this.textBoxAmplitudes.Location = new System.Drawing.Point(18, 95);
-            this.textBoxAmplitudes.Name = "textBoxAmplitudes";
-            this.textBoxAmplitudes.Size = new System.Drawing.Size(432, 20);
-            this.textBoxAmplitudes.TabIndex = 4;
+            this.textBoxObliqueIonogram.Location = new System.Drawing.Point(18, 95);
+            this.textBoxObliqueIonogram.Name = "textBoxObliqueIonogram";
+            this.textBoxObliqueIonogram.Size = new System.Drawing.Size(432, 20);
+            this.textBoxObliqueIonogram.TabIndex = 4;
             // 
             // label2
             // 
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(19, 73);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(176, 13);
+            this.label2.Size = new System.Drawing.Size(250, 13);
             this.label2.TabIndex = 3;
-            this.label2.Text = "Программа измерения амплитуд";
+            this.label2.Text = "Программа измерения наклонной ионограммы";
             // 
             // buttonIonogram
             // 
@@ -149,7 +116,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(501, 193);
+            this.ClientSize = new System.Drawing.Size(501, 144);
             this.Controls.Add(this.panel1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -171,11 +138,8 @@
         private System.Windows.Forms.Button buttonIonogram;
         private System.Windows.Forms.TextBox textBoxIonogram;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.Button buttonCalibration;
-        private System.Windows.Forms.TextBox textBoxCalibration;
-        private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Button buttonAmplitudes;
-        private System.Windows.Forms.TextBox textBoxAmplitudes;
+        private System.Windows.Forms.TextBox textBoxObliqueIonogram;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.OpenFileDialog openFileDialog;
     }

@@ -28,15 +28,15 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
-            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint7 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(0D, 0D);
-            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint8 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(1D, 1D);
-            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint9 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(2D, 2D);
-            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint10 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(3D, 2D);
-            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint11 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(4D, 1D);
-            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint12 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(5D, 0D);
-            System.Windows.Forms.DataVisualization.Charting.Title title2 = new System.Windows.Forms.DataVisualization.Charting.Title();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea4 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Series series4 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint19 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(0D, 0D);
+            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint20 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(1D, 1D);
+            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint21 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(2D, 2D);
+            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint22 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(3D, 2D);
+            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint23 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(4D, 1D);
+            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint24 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(5D, 0D);
+            System.Windows.Forms.DataVisualization.Charting.Title title4 = new System.Windows.Forms.DataVisualization.Charting.Title();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabPageIonogram = new System.Windows.Forms.TabPage();
@@ -52,6 +52,11 @@
             this.toolStripXML = new System.Windows.Forms.ToolStrip();
             this.toolStripButtonXmlOpen = new System.Windows.Forms.ToolStripButton();
             this.toolStripButtonXmlSave = new System.Windows.Forms.ToolStripButton();
+            this.tabPageCron = new System.Windows.Forms.TabPage();
+            this.richTextBox_tab = new System.Windows.Forms.RichTextBox();
+            this.toolStripCron = new System.Windows.Forms.ToolStrip();
+            this.toolStripButtonCronTabOpen = new System.Windows.Forms.ToolStripButton();
+            this.toolStripButtonCronTabSave = new System.Windows.Forms.ToolStripButton();
             this.menuStripMain = new System.Windows.Forms.MenuStrip();
             this.toolStripMenuItemFile = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItemOpenFile = new System.Windows.Forms.ToolStripMenuItem();
@@ -74,12 +79,6 @@
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripButtonIonogram = new System.Windows.Forms.ToolStripButton();
             this.toolStripButtonAmplitudes = new System.Windows.Forms.ToolStripButton();
-            this.toolStripButtonCalibration = new System.Windows.Forms.ToolStripButton();
-            this.tabPageCron = new System.Windows.Forms.TabPage();
-            this.toolStrip2 = new System.Windows.Forms.ToolStrip();
-            this.toolStripButtonCronTabOpen = new System.Windows.Forms.ToolStripButton();
-            this.toolStripButtonCronTabSave = new System.Windows.Forms.ToolStripButton();
-            this.richTextBox_tab = new System.Windows.Forms.RichTextBox();
             this.tabControl.SuspendLayout();
             this.tabPageIonogram.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.chartIonogram)).BeginInit();
@@ -87,11 +86,11 @@
             this.tabPageParameters.SuspendLayout();
             this.panel1.SuspendLayout();
             this.toolStripXML.SuspendLayout();
+            this.tabPageCron.SuspendLayout();
+            this.toolStripCron.SuspendLayout();
             this.menuStripMain.SuspendLayout();
             this.statusStrip.SuspendLayout();
             this.toolStrip1.SuspendLayout();
-            this.tabPageCron.SuspendLayout();
-            this.toolStrip2.SuspendLayout();
             this.SuspendLayout();
             // 
             // tabControl
@@ -125,38 +124,38 @@
             // 
             // chartIonogram
             // 
-            chartArea2.AxisX.MajorGrid.LineDashStyle = System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.Dash;
-            chartArea2.AxisX.Title = "Частота, МГц";
-            chartArea2.AxisX.TitleFont = new System.Drawing.Font("Times New Roman", 12F);
-            chartArea2.AxisX.ToolTip = "wertyu";
-            chartArea2.AxisX2.LineDashStyle = System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.NotSet;
-            chartArea2.AxisY.MajorGrid.LineDashStyle = System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.Dash;
-            chartArea2.AxisY.Title = "Действующая высота, км";
-            chartArea2.AxisY.TitleFont = new System.Drawing.Font("Times New Roman", 12F);
-            chartArea2.AxisY2.LineDashStyle = System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.NotSet;
-            chartArea2.BorderDashStyle = System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.Solid;
-            chartArea2.Name = "ChartAreaIonogram";
-            this.chartIonogram.ChartAreas.Add(chartArea2);
+            chartArea4.AxisX.MajorGrid.LineDashStyle = System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.Dash;
+            chartArea4.AxisX.Title = "Частота, МГц";
+            chartArea4.AxisX.TitleFont = new System.Drawing.Font("Times New Roman", 12F);
+            chartArea4.AxisX.ToolTip = "wertyu";
+            chartArea4.AxisX2.LineDashStyle = System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.NotSet;
+            chartArea4.AxisY.MajorGrid.LineDashStyle = System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.Dash;
+            chartArea4.AxisY.Title = "Действующая высота, км";
+            chartArea4.AxisY.TitleFont = new System.Drawing.Font("Times New Roman", 12F);
+            chartArea4.AxisY2.LineDashStyle = System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.NotSet;
+            chartArea4.BorderDashStyle = System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.Solid;
+            chartArea4.Name = "ChartAreaIonogram";
+            this.chartIonogram.ChartAreas.Add(chartArea4);
             this.chartIonogram.Dock = System.Windows.Forms.DockStyle.Fill;
             this.chartIonogram.Location = new System.Drawing.Point(3, 3);
             this.chartIonogram.Name = "chartIonogram";
-            series2.ChartArea = "ChartAreaIonogram";
-            series2.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastPoint;
-            series2.Color = System.Drawing.Color.Transparent;
-            series2.Name = "Series1";
-            series2.Points.Add(dataPoint7);
-            series2.Points.Add(dataPoint8);
-            series2.Points.Add(dataPoint9);
-            series2.Points.Add(dataPoint10);
-            series2.Points.Add(dataPoint11);
-            series2.Points.Add(dataPoint12);
-            this.chartIonogram.Series.Add(series2);
+            series4.ChartArea = "ChartAreaIonogram";
+            series4.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastPoint;
+            series4.Color = System.Drawing.Color.Transparent;
+            series4.Name = "Series1";
+            series4.Points.Add(dataPoint19);
+            series4.Points.Add(dataPoint20);
+            series4.Points.Add(dataPoint21);
+            series4.Points.Add(dataPoint22);
+            series4.Points.Add(dataPoint23);
+            series4.Points.Add(dataPoint24);
+            this.chartIonogram.Series.Add(series4);
             this.chartIonogram.Size = new System.Drawing.Size(596, 326);
             this.chartIonogram.TabIndex = 5;
             this.chartIonogram.Text = "chart1";
-            title2.Font = new System.Drawing.Font("Times New Roman", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            title2.Name = "TitleTimeIonogram";
-            this.chartIonogram.Titles.Add(title2);
+            title4.Font = new System.Drawing.Font("Times New Roman", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            title4.Name = "TitleTimeIonogram";
+            this.chartIonogram.Titles.Add(title4);
             this.chartIonogram.Paint += new System.Windows.Forms.PaintEventHandler(this.chartIonogram_Paint);
             this.chartIonogram.MouseMove += new System.Windows.Forms.MouseEventHandler(this.chartIonogram_MouseMove);
             // 
@@ -251,6 +250,7 @@
             this.toolStripXML.Size = new System.Drawing.Size(784, 25);
             this.toolStripXML.TabIndex = 1;
             this.toolStripXML.Text = "toolStrip2";
+            this.toolStripXML.Paint += new System.Windows.Forms.PaintEventHandler(this.toolStripXML_Paint);
             // 
             // toolStripButtonXmlOpen
             // 
@@ -273,6 +273,61 @@
             this.toolStripButtonXmlSave.Text = "toolStripButton2";
             this.toolStripButtonXmlSave.ToolTipText = "Сохранить xml-файл конфигурации измерений";
             this.toolStripButtonXmlSave.Click += new System.EventHandler(this.toolStripButtonXmlSave_Click);
+            // 
+            // tabPageCron
+            // 
+            this.tabPageCron.Controls.Add(this.richTextBox_tab);
+            this.tabPageCron.Controls.Add(this.toolStripCron);
+            this.tabPageCron.Location = new System.Drawing.Point(4, 22);
+            this.tabPageCron.Name = "tabPageCron";
+            this.tabPageCron.Size = new System.Drawing.Size(790, 332);
+            this.tabPageCron.TabIndex = 4;
+            this.tabPageCron.Text = "Cron.tab";
+            this.tabPageCron.UseVisualStyleBackColor = true;
+            // 
+            // richTextBox_tab
+            // 
+            this.richTextBox_tab.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.richTextBox_tab.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.richTextBox_tab.Location = new System.Drawing.Point(0, 25);
+            this.richTextBox_tab.Name = "richTextBox_tab";
+            this.richTextBox_tab.Size = new System.Drawing.Size(790, 307);
+            this.richTextBox_tab.TabIndex = 3;
+            this.richTextBox_tab.Text = "";
+            // 
+            // toolStripCron
+            // 
+            this.toolStripCron.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripButtonCronTabOpen,
+            this.toolStripButtonCronTabSave});
+            this.toolStripCron.Location = new System.Drawing.Point(0, 0);
+            this.toolStripCron.Name = "toolStripCron";
+            this.toolStripCron.Size = new System.Drawing.Size(790, 25);
+            this.toolStripCron.TabIndex = 2;
+            this.toolStripCron.Text = "toolStrip2";
+            this.toolStripCron.Paint += new System.Windows.Forms.PaintEventHandler(this.toolStripCron_Paint);
+            // 
+            // toolStripButtonCronTabOpen
+            // 
+            this.toolStripButtonCronTabOpen.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButtonCronTabOpen.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonCronTabOpen.Image")));
+            this.toolStripButtonCronTabOpen.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonCronTabOpen.Name = "toolStripButtonCronTabOpen";
+            this.toolStripButtonCronTabOpen.Size = new System.Drawing.Size(23, 22);
+            this.toolStripButtonCronTabOpen.Text = "toolStripButtonXmlOpen";
+            this.toolStripButtonCronTabOpen.ToolTipText = "Открыть cron-файл конфигурации измерений\r\n";
+            this.toolStripButtonCronTabOpen.Click += new System.EventHandler(this.toolStripButtonCronTabOpen_Click);
+            // 
+            // toolStripButtonCronTabSave
+            // 
+            this.toolStripButtonCronTabSave.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButtonCronTabSave.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonCronTabSave.Image")));
+            this.toolStripButtonCronTabSave.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButtonCronTabSave.Name = "toolStripButtonCronTabSave";
+            this.toolStripButtonCronTabSave.Size = new System.Drawing.Size(23, 22);
+            this.toolStripButtonCronTabSave.Text = "toolStripButton2";
+            this.toolStripButtonCronTabSave.ToolTipText = "Сохранить cron-файл конфигурации измерений";
+            this.toolStripButtonCronTabSave.Click += new System.EventHandler(this.toolStripButtonCronTabSave_Click);
             // 
             // menuStripMain
             // 
@@ -400,8 +455,7 @@
             this.toolStripButtonRefresh,
             this.toolStripSeparator3,
             this.toolStripButtonIonogram,
-            this.toolStripButtonAmplitudes,
-            this.toolStripButtonCalibration});
+            this.toolStripButtonAmplitudes});
             this.toolStrip1.Location = new System.Drawing.Point(0, 24);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Size = new System.Drawing.Size(798, 25);
@@ -443,7 +497,7 @@
             this.toolStripButtonIonogram.Name = "toolStripButtonIonogram";
             this.toolStripButtonIonogram.Size = new System.Drawing.Size(23, 22);
             this.toolStripButtonIonogram.Tag = "0";
-            this.toolStripButtonIonogram.Text = "Измерение ионограммы";
+            this.toolStripButtonIonogram.Text = "Измерение ионограммы/калибровки/амплитуд";
             this.toolStripButtonIonogram.Click += new System.EventHandler(this.toolStripButtonExternal_Click);
             // 
             // toolStripButtonAmplitudes
@@ -454,73 +508,8 @@
             this.toolStripButtonAmplitudes.Name = "toolStripButtonAmplitudes";
             this.toolStripButtonAmplitudes.Size = new System.Drawing.Size(23, 22);
             this.toolStripButtonAmplitudes.Tag = "1";
-            this.toolStripButtonAmplitudes.Text = "Измерение амплитуд";
+            this.toolStripButtonAmplitudes.Text = "Измерение наклонной ионограммы";
             this.toolStripButtonAmplitudes.Click += new System.EventHandler(this.toolStripButtonExternal_Click);
-            // 
-            // toolStripButtonCalibration
-            // 
-            this.toolStripButtonCalibration.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButtonCalibration.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonCalibration.Image")));
-            this.toolStripButtonCalibration.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButtonCalibration.Name = "toolStripButtonCalibration";
-            this.toolStripButtonCalibration.Size = new System.Drawing.Size(23, 22);
-            this.toolStripButtonCalibration.Tag = "3";
-            this.toolStripButtonCalibration.Text = "Калибровка";
-            this.toolStripButtonCalibration.Click += new System.EventHandler(this.toolStripButtonExternal_Click);
-            // 
-            // tabPageCron
-            // 
-            this.tabPageCron.Controls.Add(this.richTextBox_tab);
-            this.tabPageCron.Controls.Add(this.toolStrip2);
-            this.tabPageCron.Location = new System.Drawing.Point(4, 22);
-            this.tabPageCron.Name = "tabPageCron";
-            this.tabPageCron.Size = new System.Drawing.Size(790, 332);
-            this.tabPageCron.TabIndex = 4;
-            this.tabPageCron.Text = "Cron.tab";
-            this.tabPageCron.UseVisualStyleBackColor = true;
-            // 
-            // toolStrip2
-            // 
-            this.toolStrip2.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripButtonCronTabOpen,
-            this.toolStripButtonCronTabSave});
-            this.toolStrip2.Location = new System.Drawing.Point(0, 0);
-            this.toolStrip2.Name = "toolStrip2";
-            this.toolStrip2.Size = new System.Drawing.Size(790, 25);
-            this.toolStrip2.TabIndex = 2;
-            this.toolStrip2.Text = "toolStrip2";
-            // 
-            // toolStripButtonCronTabOpen
-            // 
-            this.toolStripButtonCronTabOpen.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButtonCronTabOpen.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonCronTabOpen.Image")));
-            this.toolStripButtonCronTabOpen.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButtonCronTabOpen.Name = "toolStripButtonCronTabOpen";
-            this.toolStripButtonCronTabOpen.Size = new System.Drawing.Size(23, 22);
-            this.toolStripButtonCronTabOpen.Text = "toolStripButtonXmlOpen";
-            this.toolStripButtonCronTabOpen.ToolTipText = "Открыть xml-файл конфигурации измерений\r\n";
-            this.toolStripButtonCronTabOpen.Click += new System.EventHandler(this.toolStripButtonCronTabOpen_Click);
-            // 
-            // toolStripButtonCronTabSave
-            // 
-            this.toolStripButtonCronTabSave.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButtonCronTabSave.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButtonCronTabSave.Image")));
-            this.toolStripButtonCronTabSave.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButtonCronTabSave.Name = "toolStripButtonCronTabSave";
-            this.toolStripButtonCronTabSave.Size = new System.Drawing.Size(23, 22);
-            this.toolStripButtonCronTabSave.Text = "toolStripButton2";
-            this.toolStripButtonCronTabSave.ToolTipText = "Сохранить xml-файл конфигурации измерений";
-            this.toolStripButtonCronTabSave.Click += new System.EventHandler(this.toolStripButtonCronTabSave_Click);
-            // 
-            // richTextBox_tab
-            // 
-            this.richTextBox_tab.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.richTextBox_tab.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.richTextBox_tab.Location = new System.Drawing.Point(0, 25);
-            this.richTextBox_tab.Name = "richTextBox_tab";
-            this.richTextBox_tab.Size = new System.Drawing.Size(790, 307);
-            this.richTextBox_tab.TabIndex = 3;
-            this.richTextBox_tab.Text = "";
             // 
             // FormMain
             // 
@@ -546,16 +535,16 @@
             this.panel1.ResumeLayout(false);
             this.toolStripXML.ResumeLayout(false);
             this.toolStripXML.PerformLayout();
+            this.tabPageCron.ResumeLayout(false);
+            this.tabPageCron.PerformLayout();
+            this.toolStripCron.ResumeLayout(false);
+            this.toolStripCron.PerformLayout();
             this.menuStripMain.ResumeLayout(false);
             this.menuStripMain.PerformLayout();
             this.statusStrip.ResumeLayout(false);
             this.statusStrip.PerformLayout();
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
-            this.tabPageCron.ResumeLayout(false);
-            this.tabPageCron.PerformLayout();
-            this.toolStrip2.ResumeLayout(false);
-            this.toolStrip2.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -599,9 +588,8 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
         private System.Windows.Forms.ToolStripButton toolStripButtonIonogram;
         private System.Windows.Forms.ToolStripButton toolStripButtonAmplitudes;
-        private System.Windows.Forms.ToolStripButton toolStripButtonCalibration;
         private System.Windows.Forms.TabPage tabPageCron;
-        private System.Windows.Forms.ToolStrip toolStrip2;
+        private System.Windows.Forms.ToolStrip toolStripCron;
         private System.Windows.Forms.ToolStripButton toolStripButtonCronTabOpen;
         private System.Windows.Forms.ToolStripButton toolStripButtonCronTabSave;
         private System.Windows.Forms.RichTextBox richTextBox_tab;

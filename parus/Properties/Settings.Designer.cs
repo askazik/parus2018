@@ -62,36 +62,24 @@ namespace parus.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string settinsExternal_Amplitudes {
-            get {
-                return ((string)(this["settinsExternal_Amplitudes"]));
-            }
-            set {
-                this["settinsExternal_Amplitudes"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string settinsExternal_Calibration {
-            get {
-                return ((string)(this["settinsExternal_Calibration"]));
-            }
-            set {
-                this["settinsExternal_Calibration"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string settingsCronConfig {
             get {
                 return ((string)(this["settingsCronConfig"]));
             }
             set {
                 this["settingsCronConfig"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string settinsExternal_ObliqueIonogram {
+            get {
+                return ((string)(this["settinsExternal_ObliqueIonogram"]));
+            }
+            set {
+                this["settinsExternal_ObliqueIonogram"] = value;
             }
         }
     }
