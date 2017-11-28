@@ -11,6 +11,15 @@ namespace parus {
 	// ===========================================================================
 	// Конфигурационный файл XML
 	// ===========================================================================
+	/// <summary>
+	/// Initializes a new abstract instance of the <see cref="xmlunit"/> class.
+	/// </summary>
+	/// <param name="fullName">The full name.</param>
+	/// <param name="mes">The mes.</param>
+	xmlunit::xmlunit(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME, Measurement mes = MEASUREMENT)
+	{
+
+	}
 
 	/// <summary>
 	/// Инициализация нового объекта класса <see cref="xmlconfig"/>.

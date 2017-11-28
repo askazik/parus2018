@@ -38,17 +38,17 @@ namespace parus {
 		unsigned count_modules; // количество модулей зондирования
 
 		// Начальная инициализация структуры.
-		ionHeaderNew2(void)
+		ionHeaderNew2(void) : 
+			ver(1),
+			height_min(0), // Это не означает, что зондирование от поверхности. Есть задержки!!!
+			height_step(0),
+			count_height(0),
+			switch_frequency(0),
+			freq_min(0),
+			freq_max(0),    
+			count_freq(0),
+			count_modules(0)
 		{
-			ver = 2;
-			height_min = 0; // Это не означает, что зондирование от поверхности. Есть задержки!!!
-			height_step = 0;
-			count_height = 0;
-			switch_frequency = 0;
-			freq_min = 0;
-			freq_max = 0;    
-			count_freq = 0;
-			count_modules = 0;
 		}
 	};
 
@@ -73,7 +73,7 @@ namespace parus {
 	// ===========================================================================
 	// Конфигурационный файл
 	// ===========================================================================
-	enum  Measurement { IONOGRAM, AMPLITUDES}; // перечисление для вариантов проведения эксперимента
+	enum  Measurement { MEASUREMENT, IONOGRAM, AMPLITUDES}; // перечисление для вариантов проведения эксперимента
 
 	// Общие параметры для программирования устройства.
 	struct ionosounder { 
@@ -99,6 +99,15 @@ namespace parus {
 	#pragma pack(pop)
 
 	// Общий блок конфигурационного xml-файла
+	class xmlunit {
+		XML::XMLDocument _document;
+		Measurement _mes;
+
+	public:
+		virtual xmlunit(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME, Measurement mes = MEASUREMENT) = 0;
+
+	};
+
 	class xmlconfig {
 
 	protected:

@@ -34,6 +34,7 @@ parus/obj/
 *.log
 *.lib
 *.sbr
+*.sdf
 
 _ReSharper*/
 [Tt]est[Rr]esult*
