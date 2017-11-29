@@ -11,14 +11,56 @@ namespace parus {
 	// ===========================================================================
 	// Конфигурационный файл XML
 	// ===========================================================================
-	/// <summary>
-	/// Initializes a new abstract instance of the <see cref="xmlunit"/> class.
-	/// </summary>
-	/// <param name="fullName">The full name.</param>
-	/// <param name="mes">The mes.</param>
-	xmlunit::xmlunit(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME, Measurement mes = MEASUREMENT)
-	{
+	const char* xmlunit::MeasurementNames[] = {"measurement", "ionogram", "amplitudes" }; // имена блоков измерений
 
+	/// <summary>
+	/// Initializes a new instance of the base <see cref="xmlunit"/> class.
+	/// </summary>
+	/// <param name="fullName">The full file name.</param>
+	/// <param name="mes">The measurement type.</param>
+	xmlunit::xmlunit(Measurement mes, std::string fullName)
+	{
+		// Откроем конфигурационный файл.
+		XML::XMLError eResult = _document.LoadFile(fullName.c_str());
+		if (eResult != tinyxml2::XML_SUCCESS) 
+			throw std::runtime_error("Ошибка открытия конфигурационного файла <" + fullName + ">.");
+
+		// Получим родительский элемент.
+		_root = _document.FirstChildElement("parus");
+		if(_root == nullptr)
+			throw std::runtime_error("В конфигурационном файле отсутствует корневой элемент <parus>.");
+
+		// Находим заголовок и модули измерения.
+		_measurement = getMeasurement(mes);
+		_header = _measurement->FirstChildElement("header");
+		if(_header == nullptr)
+		{
+			std::string tmp(MeasurementNames[mes]);
+			throw std::runtime_error("В блоке измерения <" + tmp + "> отсутствует элемент <header>.");
+		}
+		XML::XMLElement *module = _measurement->FirstChildElement("module");
+		while (module != nullptr)
+		{
+			_modules.push_back(module);
+			module = module->NextSiblingElement("module");
+		}
+	}
+
+	/// <summary>
+	/// Gets the measurement block.
+	/// </summary>
+	/// <param name="mes">The measurement type.</param>
+	/// <returns>XMLElement* - measurement element.</returns>
+	XML::XMLElement* xmlunit::getMeasurement(Measurement mes)
+	{
+		XML::XMLElement *element = _root->FirstChildElement("Measurement");
+		while( element != nullptr) 
+		{
+			if(!strcmp(element->Attribute("name"), MeasurementNames[mes]))
+				break;
+			element = element->NextSiblingElement("Measurement");
+		}
+		return element;
 	}
 
 	/// <summary>

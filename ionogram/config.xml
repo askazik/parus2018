@@ -44,7 +44,7 @@
       <!-- Частота переключения антенн, кГц (не используется) -->
       <switch_frequency>0</switch_frequency>
       <!-- Число модулей (не используется) -->
-      <modules_count>1</modules_count>
+      <!-- <modules_count>1</modules_count> -->
     </header>
 
     <module>
@@ -79,7 +79,7 @@
       <!-- Частота переключения антенн, кГц (не используется) -->
       <switch_frequency>0</switch_frequency>
       <!-- Число модулей -->
-      <modules_count>5</modules_count>
+      <!-- <modules_count>5</modules_count> -->
     </header>
 
     <module>

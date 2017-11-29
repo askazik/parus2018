@@ -100,11 +100,28 @@ namespace parus {
 
 	// Общий блок конфигурационного xml-файла
 	class xmlunit {
+
+	protected:
 		XML::XMLDocument _document;
-		Measurement _mes;
+		XML::XMLElement *_root;
+		XML::XMLElement *_measurement;
+		XML::XMLElement *_header;
+		std::vector<XML::XMLElement *> _modules;
+
+		XML::XMLElement* getMeasurement(Measurement mes);
+		
+		static const char* MeasurementNames[]; // имена блоков измерений
+	public:
+		xmlunit(Measurement mes = MEASUREMENT, std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME);
+		XML::XMLElement *getModule(int i){return _modules[i];};
+		int getModulesCount(void){return _modules.size();};
+	};
+
+	class xml_measurement : public xmlunit {
 
 	public:
-		virtual xmlunit(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME, Measurement mes = MEASUREMENT) = 0;
+		xml_measurement(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME) :
+		  xmlunit(MEASUREMENT, fullName){};
 
 	};
 
