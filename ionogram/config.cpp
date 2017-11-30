@@ -26,19 +26,19 @@ namespace parus {
 			throw std::runtime_error("Ошибка открытия конфигурационного файла <" + fullName + ">.");
 
 		// Получим родительский элемент.
-		_root = _document.FirstChildElement("parus");
+		_root = _document.RootElement();
 		if(_root == nullptr)
 			throw std::runtime_error("В конфигурационном файле отсутствует корневой элемент <parus>.");
 
 		// Находим заголовок и модули измерения.
-		_measurement = getMeasurement(mes);
+		findMeasurement(mes);
 		_header = _measurement->FirstChildElement("header");
 		if(_header == nullptr)
 		{
 			std::string tmp(MeasurementNames[mes]);
 			throw std::runtime_error("В блоке измерения <" + tmp + "> отсутствует элемент <header>.");
 		}
-		XML::XMLElement *module = _measurement->FirstChildElement("module");
+		const XML::XMLElement *module = _measurement->FirstChildElement("module");
 		while (module != nullptr)
 		{
 			_modules.push_back(module);
@@ -51,16 +51,24 @@ namespace parus {
 	/// </summary>
 	/// <param name="mes">The measurement type.</param>
 	/// <returns>XMLElement* - measurement element.</returns>
-	XML::XMLElement* xmlunit::getMeasurement(Measurement mes)
+	void xmlunit::findMeasurement(Measurement mes)
 	{
-		XML::XMLElement *element = _root->FirstChildElement("Measurement");
-		while( element != nullptr) 
+		//_measurement = _root->FirstChildElement("Measurement");
+		//while( _measurement != nullptr) 
+		//{
+		//	if(!strcmp(_measurement->Attribute("name"), MeasurementNames[mes]))
+		//		break;
+		//	_measurement = _measurement->NextSiblingElement("Measurement");
+		//}
+		for (
+         _measurement = _root->FirstChildElement("Measurement");
+         _measurement;
+         _measurement = _measurement->NextSiblingElement()
+        ) 
 		{
-			if(!strcmp(element->Attribute("name"), MeasurementNames[mes]))
+			if(!strcmp(_measurement->Attribute("name"), MeasurementNames[mes]))
 				break;
-			element = element->NextSiblingElement("Measurement");
 		}
-		return element;
 	}
 
 	/// <summary>

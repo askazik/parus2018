@@ -103,17 +103,17 @@ namespace parus {
 
 	protected:
 		XML::XMLDocument _document;
-		XML::XMLElement *_root;
-		XML::XMLElement *_measurement;
-		XML::XMLElement *_header;
-		std::vector<XML::XMLElement *> _modules;
+		const XML::XMLElement *_root;
+		const XML::XMLElement *_measurement;
+		const XML::XMLElement *_header;
+		std::vector<const XML::XMLElement *> _modules;
 
-		XML::XMLElement* getMeasurement(Measurement mes);
+		void findMeasurement(Measurement mes);
 		
 		static const char* MeasurementNames[]; // имена блоков измерений
 	public:
 		xmlunit(Measurement mes = MEASUREMENT, std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME);
-		XML::XMLElement *getModule(int i){return _modules[i];};
+		const XML::XMLElement *getModule(int i){return _modules[i];};
 		int getModulesCount(void){return _modules.size();};
 	};
 
