@@ -96,34 +96,111 @@ namespace parus {
 		unsigned count;  // количество частот зондировани€
 	};
 
+	// «аголовок измерени€.
+	struct MeasurementHeader { 
+		unsigned ver; // номер версии дл€ сохранени€ файла результатов
+		unsigned height_step; // шаг по высоте
+		unsigned height_count; // количество сохран€емых высот
+		unsigned pulse_count; // импульсов зондировани€ на каждой частоте
+		unsigned attenuation; // ослабление (аттенюатор) 1/0 = вкл/выкл
+		unsigned gain;	// усиление, дЅ (g = value/6, 6дЅ = приращение в 4 раза по мощности)
+		unsigned pulse_frq; // частота зондирующих импульсов, √ц
+		unsigned pulse_duration; // длительность зондирующих импульсов, мкс
+		unsigned switch_frequency; // „астота переключени€ антенн, к√ц (не используетс€)
+		Measurement type; // тип измерени€
+	};
+
+	// ћодуль измерени€
+	struct MeasurementModule {  
+		unsigned fstep;  // шаг по частоте ионограммы, к√ц
+		unsigned fbeg;   // начальна€ частота модул€, к√ц
+		unsigned fend;   // конечна€ частота модул€, к√ц
+		unsigned count;  // количество частот зондировани€
+		unsigned frequency;   // частота зондировани€ дл€ измерени€ амплитуд, к√ц
+	};
+
 	#pragma pack(pop)
 
-	// ќбщий блок конфигурационного xml-файла
-	class xmlunit {
-
+	// Ѕазовый блок конфигурационного xml-файла
+	class xml_unit 
+	{
 	protected:
+		// xml
 		XML::XMLDocument _document;
 		const XML::XMLElement *_root;
 		const XML::XMLElement *_measurement;
 		const XML::XMLElement *_header;
 		std::vector<const XML::XMLElement *> _modules;
 
+		// measurement
+		MeasurementHeader meas_header;
+		std::vector<MeasurementModule> meas_module;
+
 		void findMeasurement(Measurement mes);
-		
+		virtual void fillMeasurementHeader(void) = 0 {}
+		virtual void fillMeasurementModules(void) = 0 {}
+				
 		static const char* MeasurementNames[]; // имена блоков измерений
 	public:
-		xmlunit(Measurement mes = MEASUREMENT, std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME);
+		xml_unit(Measurement mes = MEASUREMENT, std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME);
 		const XML::XMLElement *getModule(int i){return _modules[i];};
 		int getModulesCount(void){return _modules.size();};
 	};
 
-	class xml_measurement : public xmlunit {
-
-	public:
-		xml_measurement(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME) :
-		  xmlunit(MEASUREMENT, fullName){};
-
+	// —труктура измерени€
+	struct MeasurementStruct
+	{
+		std::string measurement; // тип измерени€
+		unsigned dt; // врем€ измерени€, мс
 	};
+
+	// Ѕлок планировани€ эксперимента
+	class xml_project : public xml_unit 
+	{
+	protected:
+		virtual void fillMeasurementHeader(void) override {};
+		virtual void fillMeasurementModules(void) override;
+		
+		std::vector<MeasurementStruct> _queue; // очередь измерений
+	public:
+		xml_project(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME) : xml_unit(MEASUREMENT, fullName)
+		{
+			fillMeasurementHeader();
+			fillMeasurementModules();
+		}
+	};
+
+	// Ѕлок ионограммы
+	class xml_ionogram : public xml_unit 
+	{
+	protected:
+		virtual void fillMeasurementHeader(void) override;
+		virtual void fillMeasurementModules(void) override;
+		
+		std::vector<MeasurementModule> _queue; // очередь модулей измерений
+	public:
+		xml_ionogram(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME) : xml_unit(IONOGRAM, fullName)
+		{
+			fillMeasurementHeader();
+			fillMeasurementModules();
+		}
+	};
+
+	//// Ѕлок планировани€ эксперимента
+	//class xml_project : public xml_unit 
+	//{
+	//protected:
+	//	virtual void fillMeasurementHeader(void) override {};
+	//	virtual void fillMeasurementModules(void) override;
+	//	
+	//	std::vector<MeasurementStruct> _queue; // очередь измерений
+	//public:
+	//	xml_project(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME) : xml_unit(MEASUREMENT, fullName)
+	//	{
+	//		fillMeasurementHeader();
+	//		fillMeasurementModules();
+	//	};
+	//};
 
 	class xmlconfig {
 

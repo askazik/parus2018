@@ -11,14 +11,14 @@ namespace parus {
 	// ===========================================================================
 	// Конфигурационный файл XML
 	// ===========================================================================
-	const char* xmlunit::MeasurementNames[] = {"measurement", "ionogram", "amplitudes" }; // имена блоков измерений
+	const char* xml_unit::MeasurementNames[] = {"measurement", "ionogram", "amplitudes" }; // имена блоков измерений
 
 	/// <summary>
 	/// Initializes a new instance of the base <see cref="xmlunit"/> class.
 	/// </summary>
 	/// <param name="fullName">The full file name.</param>
 	/// <param name="mes">The measurement type.</param>
-	xmlunit::xmlunit(Measurement mes, std::string fullName)
+	xml_unit::xml_unit(Measurement mes, std::string fullName)
 	{
 		// Откроем конфигурационный файл.
 		XML::XMLError eResult = _document.LoadFile(fullName.c_str());
@@ -51,15 +51,8 @@ namespace parus {
 	/// </summary>
 	/// <param name="mes">The measurement type.</param>
 	/// <returns>XMLElement* - measurement element.</returns>
-	void xmlunit::findMeasurement(Measurement mes)
+	void xml_unit::findMeasurement(Measurement mes)
 	{
-		//_measurement = _root->FirstChildElement("Measurement");
-		//while( _measurement != nullptr) 
-		//{
-		//	if(!strcmp(_measurement->Attribute("name"), MeasurementNames[mes]))
-		//		break;
-		//	_measurement = _measurement->NextSiblingElement("Measurement");
-		//}
 		for (
          _measurement = _root->FirstChildElement("Measurement");
          _measurement;
@@ -68,6 +61,41 @@ namespace parus {
 		{
 			if(!strcmp(_measurement->Attribute("name"), MeasurementNames[mes]))
 				break;
+		}
+	}
+
+	void xml_project::fillMeasurementModules(void)
+	{
+		for(auto it = _modules.begin(); it != _modules.end(); ++it) {
+			MeasurementStruct out;
+			const XML::XMLElement *tmp = *it;
+
+			out.measurement = tmp->Attribute("name");
+			const XML::XMLElement *dt = tmp->FirstChildElement("dt");
+			out.dt = (dt == nullptr) ? 0 : dt->IntText(0);
+			_queue.push_back(out);
+		}
+	}
+
+	void xml_ionogram::fillMeasurementModules(void)
+	{
+		for(auto it = _modules.begin(); it != _modules.end(); ++it) {
+			MeasurementModule out;
+			const XML::XMLElement *tmp = *it;
+
+			const XML::XMLElement *element;
+			for (
+				element = tmp->FirstChildElement("Measurement");
+				element;
+				element = element->NextSiblingElement()
+			)
+				{
+					std::string name = element->Name();
+					unsigned value = (element == nullptr) ? 0 : element->IntText(0);
+					out[name.c_str()] = value;
+				}
+
+			_queue.push_back(out);
 		}
 	}
 
