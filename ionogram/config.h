@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <map>
 #include <iterator>
 #include <iostream>
 #include <fstream>
@@ -121,6 +122,29 @@ namespace parus {
 
 	#pragma pack(pop)
 
+	// Блок элементарного модуля (header, module, ...)
+	struct unit
+	{
+		std::string _name;
+		std::map<std::string, unsigned> _map; // сохраняем пару ключ/значение
+
+		void fill(const XML::XMLElement *parent)
+		{
+			_name = parent->Attribute("name");
+			const XML::XMLElement *element;
+			for (
+				element = parent->FirstChildElement();
+				element;
+				element = element->NextSiblingElement()
+			)
+			{
+				std::string name = element->Name();
+				unsigned value = (element == nullptr) ? 0 : element->IntText(0);
+				_map.insert(std::pair<std::string, unsigned>(name,value));
+			}
+		}
+	};
+
 	// Базовый блок конфигурационного xml-файла
 	class xml_unit 
 	{
@@ -133,8 +157,8 @@ namespace parus {
 		std::vector<const XML::XMLElement *> _modules;
 
 		// measurement
-		MeasurementHeader meas_header;
-		std::vector<MeasurementModule> meas_module;
+		unit meas_header;
+		std::vector<unit> meas_module;
 
 		void findMeasurement(Measurement mes);
 		virtual void fillMeasurementHeader(void) = 0 {}
@@ -147,13 +171,6 @@ namespace parus {
 		int getModulesCount(void){return _modules.size();};
 	};
 
-	// Структура измерения
-	struct MeasurementStruct
-	{
-		std::string measurement; // тип измерения
-		unsigned dt; // время измерения, мс
-	};
-
 	// Блок планирования эксперимента
 	class xml_project : public xml_unit 
 	{
@@ -161,7 +178,7 @@ namespace parus {
 		virtual void fillMeasurementHeader(void) override {};
 		virtual void fillMeasurementModules(void) override;
 		
-		std::vector<MeasurementStruct> _queue; // очередь измерений
+		std::vector<unit> _queue; // очередь измерений
 	public:
 		xml_project(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME) : xml_unit(MEASUREMENT, fullName)
 		{
