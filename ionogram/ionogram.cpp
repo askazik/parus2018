@@ -11,58 +11,69 @@ int main(void)
 	SetPriorityClass();
 
     // ===========================================================================================
-    // 1. Читаем файл конфигурации для измерения ионограммы.
+    // 1. Читаем файл конфигурации для сеанса.
     // ===========================================================================================
-	xml_project unit;
+	xml_project project;
+	xml_ionogram ionogram;
+	xml_amplitudes amplitudes;
 
-	xmlconfig conf;
-	ionHeaderNew2 _header = conf.getIonogramHeader();
+	ionHeaderNew2 _header = ionogram.getIonogramHeader();
 
-	std::cout << "Используем конфигурационный файл: <" << conf.getFileName() << ">." << std::endl;
+	std::cout << "Используем конфигурационный файл: <" << project.getFileName() << ">." << "\n\n";
 
-	std::cout << "Параметры зондирования: " << std::endl;
+	std::cout << "Параметры ионограммы: " << std::endl;
 	std::cout << "Частоты: " << _header.freq_min << " кГц - " << _header.freq_max 
-				<< " кГц, усиление = " << conf.getGain() 
-				<< " дБ, аттенюатор = " << conf.getAttenuation() << " выкл(0)/вкл(1)." << std::endl;
+				<< " кГц, усиление = " << ionogram.getGain() 
+				<< " дБ, аттенюатор = " << ionogram.getAttenuation() << " выкл(0)/вкл(1)." << "\n\n";
+
+	std::cout << "Параметры амплитудных измерений: " << std::endl;
+	std::cout << "Усиление = " << amplitudes.getGain() 
+				<< " дБ, аттенюатор = " << amplitudes.getAttenuation() << " выкл(0)/вкл(1)." << std::endl;
+	for(int i = 0; i < amplitudes.getModulesCount(); i++)
+		std::cout << amplitudes.getAmplitudesFrq(i) << " кГц" << std::endl;
 
     // ===========================================================================================
-    // 1. Читаем файл конфигурации для амплитудных измерений.
-    // ===========================================================================================
-	//xmlconfig conf("config.xml", AMPLITUDES);
-
-	//std::cout << "Используем конфигурационный файл: <" << conf.getFileName() << ">." << std::endl;
-
-	//std::cout << "Параметры зондирования: " << std::endl;
-	//std::cout << "Усиление = " << conf.getGain() 
-	//			<< " дБ, аттенюатор = " << conf.getAttenuation() << " выкл(0)/вкл(1)." << std::endl;
-	//for(size_t i = 0; i < conf.getModulesCount(); i++)
-	//	std::cout << conf.getAmplitudesFrq(i) << " кГц" << std::endl;
-
-    // ===========================================================================================
-    // 2. Конфигурирование сеанса.
+    // 2. Конфигурирование и исполнение сеанса.
     // ===========================================================================================
 	int RetStatus = 0;
+	DWORD msTimeout = 25;
+	unsigned short curFrq; // текущая частота зондирования, кГц
+	int counter; // число импульсов от генератора
+
 	try	
 	{
-		// Подготовка аппаратуры к зондированию.
-		// Открытие выходнго файла данных и запись заголовка.
-		ionogramSettings ion = conf.getIonogramSettings();
-		parusWork *work = new parusWork(&conf);
-		// Задержка для корректной инициализации ADC
-		Sleep(500); // полсекунды
+		parusWork *work = new parusWork(); // Подготовка аппаратуры к зондированию.
+		Sleep(500); // Задержка для корректной инициализации.	
 
-		DWORD msTimeout = 25;
-		unsigned short curFrq = ion.fbeg; // текущая частота зондирования, кГц
-		int counter = ion.count * conf.getPulseCount(); // число импульсов от генератора
+		// Перебор по элементам проекта.
+		for(size_t i=0; i < project.getModulesCount(); i++)
+		{
+			switch(project.getMeasurement())
+			{
+			case IONOGRAM:
+				work->setup(&ionogram);
+				curFrq = ionogram.getModule(0)._map.at("fbeg");
+				counter = ion.count * ionogram.getPulseCount(); // число импульсов от генератора
+				work->startGenerator(counter+1); // Запуск генератора импульсов.
 
-		work->startGenerator(counter+1); // Запуск генератора импульсов.
+				break;
+			case AMPLITUDES:
+				work->setup(&amplitudes);
+				break;
+			default:
+				std::cout << "Неизвестный блок измерений <" << project.getMeasurement() << "> в конфигурационном файле." << std::endl;
+			}
+		}
+
+		
+
 		while(counter) // обрабатываем импульсы генератора
 		{
 			work->adjustSounding(curFrq);
 
 			// Инициализация массива суммирования нулями.
 			work->cleanLineAccumulator();
-			for (unsigned k = 0; k < conf.getPulseCount(); k++) // счётчик циклов суммирования на одной частоте
+			for (unsigned k = 0; k < ionogram.getPulseCount(); k++) // счётчик циклов суммирования на одной частоте
 			{
 				work->ASYNC_TRANSFER(); // запустим АЦП
 				
@@ -77,10 +88,10 @@ int main(void)
 				counter--; // приступаем к обработке следующего импульса
 			}
 			// усредним по количеству импульсов зондирования на одной частоте
-			if(conf.getPulseCount() > 1)
-				work->averageLine(conf.getPulseCount()); 
+			if(ionogram.getPulseCount() > 1)
+				work->averageLine(ionogram.getPulseCount()); 
 			// Усечение данных до char (сдвиг на 6 бит) и сохранение линии в файле.
-			switch(conf.getVersion())
+			switch(ionogram.getVersion())
 			{
 			case 0: // ИПГ
 				work->saveLine(curFrq);

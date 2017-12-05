@@ -29,8 +29,9 @@
 #include "config.h"
 
 // 14 бит - без знака, 13 бит по модулю со знаком для каждой квадратуры = 8191.
-// sqrt(8191^2 + 8191^2) = 11583... Берем 11580.
-#define __AMPLITUDE_MAX__ 11580 // константа, определяющая максимум амплитуды, выше которого подозреваем ограничение сигнала
+#define __AMPLITUDE_MAX__ 8191 // константа, определяющая максимум амплитуды, выше которого подозреваем ограничение сигнала
+// Число высот (размер исходного буфера АЦП при зондировании, fifo нашего АЦП 4Кб. Т.е. не больше 1024 отсчётов для каждого из двух квадратурных каналов).
+#define __COUNT_MAX__ 1024 // константа, определяющая максимуальное число единовременно измеряемых спаренных квадратурных отсчётов
 
 namespace parus {
 
@@ -127,7 +128,7 @@ namespace parus {
 		static const std::string _DeviceName;
 		static const double _C; // скорость света в вакууме
 
-		parusWork(xmlconfig* conf);
+		parusWork(void);
 		~parusWork(void);
 
 		M214x3M_DRVPARS initADC(unsigned int nHeights);
@@ -138,11 +139,12 @@ namespace parus {
 		void READ_GETIOSTATE(void);
 		int READ_ISCOMPLETE(unsigned long msTimeout);
 
+		void setup(xml_unit* conf);
 		void adjustSounding(unsigned int curFrq);
 		void startGenerator(unsigned int nPulses);
 
 		// Работа с ионограммами
-		void openIonogramFile(xmlconfig* conf);
+		void openIonogramFile(xml_ionogram* conf);
 		void cleanLineAccumulator(void);
 		void accumulateLine(unsigned short curFrq); // суммирование по импульсам на одной частоте
 		void averageLine(unsigned pulse_count); // усреднение по импульсам на одной частоте
@@ -151,7 +153,7 @@ namespace parus {
 		void saveDirtyLine(void);
 
 		// Работа с файлами выходных данных
-		void openDataFile(xmlconfig* conf);
+		void openDataFile(xml_amplitudes* conf);
 		void saveFullData(void);
 		void saveDataWithGain(void);
 

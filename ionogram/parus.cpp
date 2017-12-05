@@ -10,35 +10,21 @@ namespace parus {
 	const std::string parusWork::_DeviceName = "ADM214x3M on AMBPCI";
 	const double parusWork::_C = 2.9979e8; // скорость света в вакууме
 
-	parusWork::parusWork(xmlconfig* conf) :
+	parusWork::parusWork(void) :
 		_hFile(NULL)
 	{
-		_g = conf->getGain()/6;	// ??? 6дБ = приращение в 4 раза по мощности
-		if(_g > 7) _g = 7;
-
-		_att = static_cast<char>(conf->getAttenuation());
-		_fsync = conf->getPulseFrq();
-		_pulse_duration = conf->getPulseDuration();
-		_height_count = conf->getHeightCount(); // количество высот (реально измеренных)
-		_height_min = 0; // начальная высота, м
-
-		// Проверка на корректность параметров зондирования.
-		// Количество отсчетов = размер буфера FIFO АЦП в 32-разрядных словах.
-		std::string stmp = std::to_string(static_cast<unsigned long long>(_height_count));
-		if(_height_count < 64 && _height_count >= 4096) // 4096 - сбоит!!! 16К = 4096*4б
-			throw std::out_of_range("Размер буфера АЦП должен быть больше 64 и меньше 4096. <" + stmp + ">");
-		else
-			if(_height_count & (_height_count - 1))
-				throw std::out_of_range("Размер буфера АЦП должен быть степенью 2. <" + stmp + ">");
-
-		// Открываем устройство, используя глобальные переменные, установленные заранее.
+		_height_count = __COUNT_MAX__;
+		
+		// Открываем устройство, используя глобальные переменные, установленные заранее.	
 		_DrvPars = initADC(_height_count);
 		_DAQ = DAQ_open(_DriverName.c_str(), &_DrvPars); // NULL 
 		if(!_DAQ)
-			throw std::runtime_error("Не могу открыть модуль сбора данных.");
-
-		// Запрос памяти для работы АЦП.
-		// Два сырых 16-битных чередующихся канала на одной частоте (count - количество 32-разрядных слов).
+			throw std::runtime_error("Не открывается модуль сбора данных.");
+				
+		// =================================================================================================
+		// Выделение буферов для обработки сигнала.
+		// =================================================================================================
+		// Запрос памяти для двух сырых 16-битных чередующихся каналов (из АЦП получаем 32-разрядное слово на отсчёт).
 		buf_size = static_cast<unsigned long>(_height_count * sizeof(unsigned long)); // размер буфера строки в байтах
 		_fullBuf = new unsigned long [_height_count];
 
@@ -46,6 +32,9 @@ namespace parus {
 		_sum_abs = new unsigned short [_height_count];
 		cleanLineAccumulator();
 
+		// =================================================================================================
+		// Выделение буфера для работы АЦП.
+		// =================================================================================================
 		// блоки TBLENTRY плотно упакованы вслед за нулевым из DAQ_ASYNCREQDATA
 		int ReqDataSize = sizeof(DAQ_ASYNCREQDATA); // используем толко один буфер!!!
 		_ReqData = (DAQ_ASYNCREQDATA *)new char[ReqDataSize];
@@ -63,6 +52,27 @@ namespace parus {
 
 		char *buffer = (char* )_ReqData->Tbl[0].Addr;
 		memset( buffer, 0, buf_size );
+		// =================================================================================================
+
+		// Настройка параметров асинхронного режима.
+		_xferData.UseIrq = 1;	// 1 - использовать прерывания
+		_xferData.Dir = 1;		// Направление обмена (1 - ввод, 2 - вывод данных)
+		// Для непрерывной передачи данных по замкнутому циклу необходимо установить автоинициализацию обмена.
+		_xferData.AutoInit = 0;	// 1 - автоинициализация обмена
+		// Открываем LPT1 порт для записи через драйвер GiveIO.sys
+		initLPT1();
+	}
+
+	void parusWork::setup(xml_unit* conf)
+	{
+		_g = conf->getGain()/6;	// ??? 6дБ = приращение в 4 раза по мощности
+		if(_g > 7) _g = 7;
+
+		_att = static_cast<char>(conf->getAttenuation());
+		_fsync = conf->getPulseFrq();
+		_pulse_duration = conf->getPulseDuration();
+		_height_count = conf->getHeightCount(); // количество высот (реально измеренных)
+		_height_min = 0; // начальная высота, м
 
 		// Задаём частоту дискретизации АЦП, Гц.
 		double Frq = _C/(2.*conf->getHeightStep());
@@ -72,23 +82,14 @@ namespace parus {
 		conf->setHeightStep(_C/(2.*Frq)); // реальный шаг по высоте, м
 		_height_step = conf->getHeightStep(); // шаг по высоте, м
 
-		// Настройка параметров асинхронного режима.
-		_xferData.UseIrq = 1;	// 1 - использовать прерывания
-		_xferData.Dir = 1;		// Направление обмена (1 - ввод, 2 - вывод данных)
-		// Для непрерывной передачи данных по замкнутому циклу необходимо установить автоинициализацию обмена.
-		_xferData.AutoInit = 0;	// 1 - автоинициализация обмена
-
-		// Открываем LPT1 порт для записи через драйвер GiveIO.sys
-		initLPT1();
-
 		switch(conf->getMeasurement())
 		{
 		case IONOGRAM:
 			// Определяем размер log-файла
-			openIonogramFile(conf);
+			openIonogramFile((xml_ionogram*)conf);
 			break;
 		case AMPLITUDES:
-			openDataFile(conf);
+			openDataFile((xml_amplitudes*)conf);
 			break;
 		}
 	}
@@ -350,7 +351,7 @@ namespace parus {
 	}
 
 	// Открываем файл ионограммы для записи и вносим в него заголовок.
-	void parusWork::openIonogramFile(xmlconfig* conf)
+	void parusWork::openIonogramFile(xml_ionogram* conf)
 	{
 		// Заполнение заголовка файла.
 		ionHeaderNew2 header = conf->getIonogramHeader();
@@ -389,7 +390,7 @@ namespace parus {
 	}
 
 	// Открываем файл данных для записи и вносим в него заголовок.
-	void parusWork::openDataFile(xmlconfig* conf)
+	void parusWork::openDataFile(xml_amplitudes* conf)
 	{
 		dataHeader header = conf->getAmplitudesHeader();
 

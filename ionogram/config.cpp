@@ -4,7 +4,7 @@
 #include "config.h"
 
 /// <summary>
-/// Содержит классы и определения для работы с конфигурацией аппаратуры и эксперимента.
+/// Содержит классы и определения для работы с конфигурацией, сохранённой в xml-файле.
 /// </summary>
 namespace parus {
 
@@ -20,28 +20,45 @@ namespace parus {
 	/// <param name="mes">The measurement type.</param>
 	xml_unit::xml_unit(Measurement mes, std::string fullName)
 	{
+		_measurement = mes;
+		_fullFileName = fullName;
+
 		// Откроем конфигурационный файл.
 		XML::XMLError eResult = _document.LoadFile(fullName.c_str());
 		if (eResult != tinyxml2::XML_SUCCESS) 
 			throw std::runtime_error("Ошибка открытия конфигурационного файла <" + fullName + ">.");
 
 		// Получим родительский элемент.
-		_root = _document.RootElement();
-		if(_root == nullptr)
+		_xml_root = _document.RootElement();
+		if(_xml_root == nullptr)
 			throw std::runtime_error("В конфигурационном файле отсутствует корневой элемент <parus>.");
 
 		// Находим заголовок и модули измерения.
 		findMeasurement(mes);
-		_header = _measurement->FirstChildElement("header");
-		if(_header == nullptr)
+		
+		// Заполним header
+		_xml_header = _xml_measurement->FirstChildElement("header");
+		_header.fill(_xml_header);
+		if(_xml_header == nullptr)
 		{
 			std::string tmp(MeasurementNames[mes]);
 			throw std::runtime_error("В блоке измерения <" + tmp + "> отсутствует элемент <header>.");
 		}
-		const XML::XMLElement *module = _measurement->FirstChildElement("module");
+		
+		// Заполним имеющимися module
+		const XML::XMLElement *module = _xml_measurement->FirstChildElement("module");
+		if(module == nullptr)
+		{
+			std::string tmp(MeasurementNames[mes]);
+			throw std::runtime_error("В блоке измерения <" + tmp + "> отсутствует элемент <module>.");
+		}
 		while (module != nullptr)
 		{
-			_modules.push_back(module);
+			unit tmp;
+			tmp.fill(module);
+
+			_xml_modules.push_back(module);
+			_modules.push_back(tmp);
 			module = module->NextSiblingElement("module");
 		}
 	}
@@ -54,174 +71,18 @@ namespace parus {
 	void xml_unit::findMeasurement(Measurement mes)
 	{
 		for (
-         _measurement = _root->FirstChildElement("Measurement");
-         _measurement;
-         _measurement = _measurement->NextSiblingElement()
+         _xml_measurement = _xml_root->FirstChildElement("Measurement");
+         _xml_measurement;
+         _xml_measurement = _xml_measurement->NextSiblingElement()
         ) 
 		{
-			if(!strcmp(_measurement->Attribute("name"), MeasurementNames[mes]))
+			if(!strcmp(_xml_measurement->Attribute("name"), MeasurementNames[mes]))
 				break;
 		}
 	}
 
-	void xml_project::fillMeasurementModules(void)
+	struct tm xml_unit::getUTC(void)
 	{
-		for(auto it = _modules.begin(); it != _modules.end(); ++it) {
-			MeasurementStruct out;
-			const XML::XMLElement *tmp = *it;
-
-			out.measurement = tmp->Attribute("name");
-			const XML::XMLElement *dt = tmp->FirstChildElement("dt");
-			out.dt = (dt == nullptr) ? 0 : dt->IntText(0);
-			_queue.push_back(out);
-		}
-	}
-
-	void xml_ionogram::fillMeasurementModules(void)
-	{
-		for(auto it = _modules.begin(); it != _modules.end(); ++it) {
-			MeasurementModule out;
-			const XML::XMLElement *tmp = *it;
-
-			const XML::XMLElement *element;
-			for (
-				element = tmp->FirstChildElement("Measurement");
-				element;
-				element = element->NextSiblingElement()
-			)
-				{
-					std::string name = element->Name();
-					unsigned value = (element == nullptr) ? 0 : element->IntText(0);
-					out[name.c_str()] = value;
-				}
-
-			_queue.push_back(out);
-		}
-	}
-
-	/// <summary>
-	/// Инициализация нового объекта класса <see cref="xmlconfig"/>.
-	/// </summary>
-	/// <param name="fullName">Имя конфигурационного файла xml. По умолчанию: #define XML_CONFIG_DEFAULT_FILE_NAME.</param>
-	/// <param name="mes">Вид эксперимента (ионограмма/амплитудограмма). По умолчанию: IONOGRAM.</param>
-	xmlconfig::xmlconfig(std::string fullName, Measurement mes)
-	{
-		_fullFileName = fullName;
-		_mes = mes;
-
-		// Считаем информацию.
-		const XML::XMLElement *parent, *xml_mes;
-		_document.LoadFile(_fullFileName.c_str());
- 
-		// Искомый параметр name для выбора измерения
-		std::string mes_name;
-		switch(mes)
-		{
-		case IONOGRAM:
-			mes_name = "ionogram";
-			break;
-		case AMPLITUDES:
-			mes_name = "amplitudes";
-			break;
-		}
-
-		// Определим элемент с искомым параметром
-		parent = _document.FirstChildElement();
-		for (
-         xml_mes = parent->FirstChildElement("Measurement");
-         xml_mes;
-         xml_mes = xml_mes->NextSiblingElement()
-        ) 
-		{
-			if(!strcmp(xml_mes->Attribute("name"), mes_name.c_str()))
-				break;
-		}
- 
-		// Считываем желаемую конфигурацию аппаратуры.
-		loadMeasurementHeader(xml_mes);
-		// Считываем желаемую конфигурацию эксперимента.
-		switch(mes)
-		{
-		case IONOGRAM:
-			loadIonogramConfig(xml_mes);
-			break;
-		case AMPLITUDES:
-			loadAmplitudesConfig(xml_mes);
-			break;
-		}
-	}
-
-	/// <summary>
-	/// Считывание информации о настройках аппаратуры. Содержится в заголовке блока эксперимента.
-	/// </summary>
-	/// <param name="xml_mes">Указатель на XML элемент, сожержащий информацию о настройках аппаратуры/эксперимента.</param>
-	void xmlconfig::loadMeasurementHeader(const XML::XMLElement *xml_mes)
-	{
-		const XML::XMLElement *xml_header, *xml_element;
-		int value = 0;
-
-		xml_header = xml_mes->FirstChildElement("header");
-		xml_element = xml_header->FirstChildElement("version");
-			xml_element->QueryIntText(&value);
-				_device.ver = value;
-		xml_element = xml_header->FirstChildElement("height_step");
-			xml_element->QueryIntText(&value);
-				_device.height_step = value;
-		xml_element = xml_header->FirstChildElement("height_count");
-			xml_element->QueryIntText(&value);
-				_device.height_count = value;
-		xml_element = xml_header->FirstChildElement("pulse_count");
-			xml_element->QueryIntText(&value);
-				_device.pulse_count = value;
-		xml_element = xml_header->FirstChildElement("attenuation");
-			xml_element->QueryIntText(&value);
-				_device.attenuation = value;
-		xml_element = xml_header->FirstChildElement("gain");
-			xml_element->QueryIntText(&value);
-				_device.gain = value;
-		xml_element = xml_header->FirstChildElement("pulse_frq");
-			xml_element->QueryIntText(&value);
-				_device.pulse_frq = value;
-		xml_element = xml_header->FirstChildElement("pulse_duration");
-			xml_element->QueryIntText(&value);
-				_device.pulse_duration = value;
-		xml_element = xml_header->FirstChildElement("switch_frequency");
-			xml_element->QueryIntText(&value);
-				_device.switch_frequency = value;
-		xml_element = xml_header->FirstChildElement("modules_count");
-			xml_element->QueryIntText(&value);
-				_device.modules_count = value;
-	}
-
-	/// <summary>
-	/// Загрузка информации о конфигурации измерения ионограмм.
-	/// </summary>
-	/// <param name="xml_mes">Указатель на XML элемент, сожержащий информацию о настройках аппаратуры/эксперимента.</param>
-	void xmlconfig::loadIonogramConfig(const XML::XMLElement *xml_mes)
-	{
-		const XML::XMLElement *xml_module, *xml_element;
-		int value = 0;
-
-		// Считаем, что модуль ионограммы единственный
-		xml_module = xml_mes->FirstChildElement("module");
-		xml_element = xml_module->FirstChildElement("fbeg");
-			xml_element->QueryIntText(&value);
-				_ionogram.fbeg = value;
-		xml_element = xml_module->FirstChildElement("fend");
-			xml_element->QueryIntText(&value);
-				_ionogram.fend = value;
-		xml_element = xml_module->FirstChildElement("fstep");
-			xml_element->QueryIntText(&value);
-				_ionogram.fstep = value;
-
-		_ionogram.count = 1 + (_ionogram.fend - _ionogram.fbeg) / _ionogram.fstep;
-	}
-
-	// Формирование заголовка файла ионограмм
-	ionHeaderNew2 xmlconfig::getIonogramHeader(void)
-	{
-		ionHeaderNew2 _out;
-
 	// Obtain coordinated universal time (!!!! UTC !!!!!):
     // ==================================================================================================
     // The value returned generally represents the number of seconds since 00:00 hours, Jan 1, 1970 UTC
@@ -234,39 +95,45 @@ namespace parus {
 		time(&ltime);
 		struct tm newtime;
 		gmtime_s(&newtime, &ltime);
+		return newtime;
+	}
+
+	// Формирование заголовка файла ионограмм
+	/// <summary>
+	/// Gets the ionogram header.
+	/// </summary>
+	/// <returns>Структура ionHeaderNew2 для записи в заголовок файла.</returns>
+	ionHeaderNew2 xml_ionogram::getIonogramHeader(void)
+	{
+		ionHeaderNew2 _out;
+		unit module0 = getModule(0);
+		struct tm newtime = getUTC();
 
 		// Заполнение заголовка файла.
 		_out.time_sound = newtime;
-		_out.count_freq = 1 + (_ionogram.fend - _ionogram.fbeg)/_ionogram.fstep;
 		_out.count_height = getHeightCount();
 		_out.count_modules = getModulesCount();
-		_out.freq_max = _ionogram.fend;
-		_out.freq_min = _ionogram.fbeg;
+		_out.freq_max = module0._map.at("fend");
+		_out.freq_min = module0._map.at("fbeg");
+		_out.count_freq = getFrequenciesCount();
 		_out.height_min = 0;
 		_out.height_step = getHeightStep();
-		_out.switch_frequency = _device.switch_frequency;
+		_out.switch_frequency = getSwitchFrequency();
 		_out.ver = getVersion();
 
 		return _out;
 	}
 
-	// Формирование заголовка файла амплитудных измерений
-	dataHeader xmlconfig::getAmplitudesHeader(void)
+	unsigned xml_ionogram::getFrequenciesCount(void)
 	{
-		// Obtain coordinated universal time (!!!! UTC !!!!!):
-		// ==================================================================================================
-		// The value returned generally represents the number of seconds since 00:00 hours, Jan 1, 1970 UTC
-		// (i.e., the current unix timestamp). Although libraries may use a different representation of time:
-		// Portable programs should not use the value returned by this function directly, but always rely on
-		// calls to other elements of the standard library to translate them to portable types (such as
-		// localtime, gmtime or difftime).
-		// ==================================================================================================
+		unit module0 = getModule(0);
+		return 1 + (module0._map.at("fend") - module0._map.at("fbeg"))/module0._map.at("fstep");
+	}
 
-		time_t ltime;
-		time(&ltime);
-		struct tm newtime;
-	
-		gmtime_s(&newtime, &ltime);
+	// Формирование заголовка файла амплитудных измерений
+	dataHeader xml_amplitudes::getAmplitudesHeader(void)
+	{
+		struct tm newtime = getUTC();
 
 		// Заполнение заголовка файла.
 		dataHeader header;
@@ -280,31 +147,5 @@ namespace parus {
 		header.count_modules = getModulesCount(); // количество модулей зондирования
 
 		return header;
-	}
-
-	/// <summary>
-	/// Загрузка информации о конфигурации амплитудных измерений.
-	/// </summary>
-	/// <param name="xml_mes">Указатель на XML элемент, сожержащий информацию о настройках аппаратуры/эксперимента.</param>
-	void xmlconfig::loadAmplitudesConfig(const XML::XMLElement *xml_mes)
-	{
-		const XML::XMLElement *xml_module, *xml_element;
-		int value = 0;
-		int i = 0;
-
-		// Определим размер вектора параметров
-		_amplitudes.resize(getModulesCount());
-		// Перебор по модулям
-		for (
-         xml_module = xml_mes->FirstChildElement("module");
-         xml_module;
-         xml_module = xml_module->NextSiblingElement()
-        ) 
-		{
-			xml_element = xml_module->FirstChildElement("frequency");
-			xml_element->QueryIntText(&value);
-				_amplitudes[i].frq = value;
-			i++;
-		}
 	}
 }
