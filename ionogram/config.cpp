@@ -98,9 +98,8 @@ namespace parus {
 		return newtime;
 	}
 
-	// Формирование заголовка файла ионограмм
 	/// <summary>
-	/// Gets the ionogram header.
+	/// Формирование заголовка файла ионограмм.
 	/// </summary>
 	/// <returns>Структура ionHeaderNew2 для записи в заголовок файла.</returns>
 	ionHeaderNew2 xml_ionogram::getIonogramHeader(void)
@@ -124,6 +123,10 @@ namespace parus {
 		return _out;
 	}
 
+	/// <summary>
+	/// Возвращает количество частот зондирования ионограммы.
+	/// </summary>
+	/// <returns></returns>
 	unsigned xml_ionogram::getFrequenciesCount(void)
 	{
 		unit module0 = getModule(0);

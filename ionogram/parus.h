@@ -140,6 +140,8 @@ namespace parus {
 		int READ_ISCOMPLETE(unsigned long msTimeout);
 
 		void setup(xml_unit* conf);
+		int ionogram(xml_unit* conf);
+		int amplitudes(xml_unit* conf);
 		void adjustSounding(unsigned int curFrq);
 		void startGenerator(unsigned int nPulses);
 

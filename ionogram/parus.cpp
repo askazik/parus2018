@@ -459,10 +459,8 @@ namespace parus {
 			// Разбиение на квадратуры. 
 			// Значимы только старшие 14 бит. Младшие 2 бит - технологическая окраска.
 	        word = _fullBuf[i];
-	        /*re = static_cast<int>(twoCh.re.value) >> 2;
-	        im = static_cast<int>(twoCh.im.value) >> 2;*/
-			re = static_cast<short>(twoCh.re.value>>2);
-	        im = static_cast<short>(twoCh.im.value>>2);
+			re = twoCh.re.value>>2;
+	        im = twoCh.im.value>>2;
 
 			max_abs_re = (abs(re) > abs(max_abs_re)) ? re : max_abs_re;
 			max_abs_im = (abs(im) > abs(max_abs_im)) ? im : max_abs_im;
@@ -720,6 +718,81 @@ namespace parus {
 	int comp(const void *i, const void *j)
 	{
 		return *(unsigned char *)i - *(unsigned char *)j;
+	}
+
+	int parusWork::ionogram(xml_unit* conf)
+	{
+		xml_ionogram* ionogram = (xml_ionogram*)conf;
+		int RetStatus = 0;
+		DWORD msTimeout = 25;
+		unsigned short curFrq; // текущая частота зондирования, кГц
+		int counter; // число импульсов от генератора
+
+		curFrq = ionogram->getModule(0)._map.at("fbeg");
+		unsigned fstep = ionogram->getModule(0)._map.at("fstep");
+		counter = ionogram->getFrequenciesCount() * ionogram->getPulseCount(); // требуемое число импульсов от генератора
+		startGenerator(counter+1); // Запуск генератора импульсов.
+
+		while(counter) // обрабатываем импульсы генератора
+		{
+			adjustSounding(curFrq);
+
+			// Инициализация массива суммирования нулями.
+			cleanLineAccumulator();
+			for (unsigned k = 0; k < ionogram->getPulseCount(); k++) // счётчик циклов суммирования на одной частоте
+			{
+				ASYNC_TRANSFER(); // запустим АЦП
+				
+				// Цикл проверки до появления результатов в буфере.
+				// READ_BUFISCOMPLETE - сбоит на частоте 47 Гц
+				while(READ_ISCOMPLETE(msTimeout) == NULL);
+
+				// Остановим АЦП
+				READ_ABORTIO();					
+
+				accumulateLine(curFrq); // частота нужна для заполнения журнала
+				counter--; // приступаем к обработке следующего импульса
+			}
+			// усредним по количеству импульсов зондирования на одной частоте
+			if(ionogram->getPulseCount() > 1)
+				averageLine(ionogram->getPulseCount()); 
+			// Сохранение линии в файле.
+			switch(ionogram->getVersion())
+			{
+			case 0: // ИПГ
+				saveLine(curFrq); // Усечение данных до char (сдвиг на 6 бит)
+				break;
+			case 1: // без потерь
+				saveDirtyLine();
+				break;
+			case 2: // для калибровки
+				saveFullData();
+				break;
+			case 3: // CDF
+
+				break;
+			}
+			curFrq += fstep; // следующая частота зондирования
+		}
+
+		// Сохраним информацию о наступлении ограничения сигнала
+		std::vector<std::string> log = getLog();
+		std::ofstream output_file("parus.log");
+		std::ostream_iterator<std::string> output_iterator(output_file, "\n");
+		std::copy(log.begin(), log.end(), output_iterator);
+
+		return RetStatus;
+	}
+
+	int parusWork::amplitudes(xml_unit* conf)
+	{
+		xml_amplitudes* amplitudes = (xml_amplitudes*)conf;
+		int RetStatus = 0;
+		DWORD msTimeout = 25;
+		unsigned short curFrq; // текущая частота зондирования, кГц
+		int counter; // число импульсов от генератора
+
+		return RetStatus;
 	}
 
 } // namespace parus

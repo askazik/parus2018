@@ -121,7 +121,7 @@ namespace parus {
 		const XML::XMLElement *getXMLModule(int i){return _xml_modules[i];}
 		const unit getHeader(void){return _header;}
 		const unit getModule(int i){return _modules[i];}
-		int getModulesCount(void){return _xml_modules.size();}
+		unsigned getModulesCount(void){return _xml_modules.size();}
 		Measurement getMeasurement(void){return _measurement;}
 
 		// Информация из заголовка.
