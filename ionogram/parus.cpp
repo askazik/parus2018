@@ -795,6 +795,42 @@ namespace parus {
 		return RetStatus;
 	}
 
+	// Class lineADC
+	lineADC::lineADC(unsigned long *buf, short saved_buf_size) :
+		_buf(buf),
+		_saved_buf_size(saved_buf_size)
+	{
+		// Изменим размер вектора. Делаем только один раз!!!
+		_re.resize(__COUNT_MAX__);
+		_im.resize(__COUNT_MAX__);
+		fill();
+	}
+
+	// Заполнение обрабатываемых векторов из аппаратного буфера.
+	void lineADC::fill(void)
+	{
+		for(size_t i = 0; i < _re.size(); i++)
+		{
+	        // Используем двухканальную интерпретацию через анонимную структуру
+	        union {
+	            unsigned long word;     // 4-байтное слово двухканального АЦП
+	            adcTwoChannels twoCh;  // двухканальные (квадратурные) данные
+	        };
+	            
+			// Разбиение на квадратуры. 
+			// Значимы только старшие 14 бит. Младшие 2 бит - технологическая окраска.
+	        word = _buf[i];
+			_re.at(i) = twoCh.re.value>>2;
+	        _im.at(i) = twoCh.im.value>>2;
+		} 
+	}
+
+	//
+	void lineADC::setSavedSize(short size)
+	{
+
+	}
+
 } // namespace parus
 
 	////	2.2.84	Получить коэффициент усиления (1002)

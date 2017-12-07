@@ -163,6 +163,23 @@ namespace parus {
 		std::vector<std::string> getLog(void){ return _log;}
 	};
 
+	// Обработка строки, измеренной АЦП.
+	class lineADC
+	{
+		std::vector<short> _re, _im;
+		unsigned long *_buf; // указатель на аппаратный буфер
+		short _saved_buf_size; // размер буфера для сохранения результатов (уменьшаем размер выходного файла)
+	public:
+		lineADC(void){};
+		lineADC(unsigned long *buf, short saved_buf_size);
+
+		void fill(void);
+		void setSavedSize(short size){_saved_buf_size = size;}
+		short getSavedSize(void){return _saved_buf_size;}
+		void setADCBufer(unsigned long *buf){_buf = buf;}
+		unsigned long * getADCBufer(void){return _buf;}
+	};
+
 	int comp(const void *i, const void *j);
 
 } // namespace parus
