@@ -796,19 +796,37 @@ namespace parus {
 	}
 
 	// Class lineADC
-	lineADC::lineADC(unsigned long *buf, short saved_buf_size) :
-		_buf(buf),
-		_saved_buf_size(saved_buf_size)
+	// Инициализация без заполнения.
+	lineADC::lineADC() :
+		_buf(nullptr),
+		_saved_buf_size(__COUNT_MAX__)
 	{
 		// Изменим размер вектора. Делаем только один раз!!!
 		_re.resize(__COUNT_MAX__);
 		_im.resize(__COUNT_MAX__);
-		fill();
+		
+		_buf = new unsigned long [__COUNT_MAX__];
+		memset(_buf, 0, static_cast<unsigned long>(__COUNT_MAX__ * sizeof(unsigned long))); // размер буфера строки в байтах;
+	}
+
+	// Инициализация с заполнением.
+	lineADC::lineADC(unsigned long *buf)
+	{
+		lineADC();
+		fill(buf);
+	}
+
+	// Чистим буферы данных
+	lineADC::~lineADC()
+	{
+		if(_buf) delete [] _buf;
 	}
 
 	// Заполнение обрабатываемых векторов из аппаратного буфера.
-	void lineADC::fill(void)
+	void lineADC::fill(unsigned long *buf)
 	{
+		// Заполним буфер-копию исходными данными
+		memcpy(_buf, buf, static_cast<unsigned long>(__COUNT_MAX__ * sizeof(unsigned long))); // размер буфера строки в байтах;
 		for(size_t i = 0; i < _re.size(); i++)
 		{
 	        // Используем двухканальную интерпретацию через анонимную структуру
@@ -819,18 +837,67 @@ namespace parus {
 	            
 			// Разбиение на квадратуры. 
 			// Значимы только старшие 14 бит. Младшие 2 бит - технологическая окраска.
-	        word = _buf[i];
+	        word = buf[i];
 			_re.at(i) = twoCh.re.value>>2;
 	        _im.at(i) = twoCh.im.value>>2;
-		} 
+		}
 	}
 
-	//
-	void lineADC::setSavedSize(short size)
+	// Возвращает статистику строки данных.
+	void lineADC::calculateStatistics(void)
 	{
+		unsigned char *sortData = new unsigned char [n]; // буферный массив для сортировки
+		unsigned char Q1, Q2, Q3, dQ;
+		unsigned short maxLim = 0;
 
+		// 1. Упорядочим данные по возрастанию.
+		memcpy(sortData, arr, n);
+		qsort(sortData, n, sizeof(unsigned char), comp);
+		// 2. Квартили (n - чётное, степень двойки!!!)
+		Q1 = min(sortData[n/4],sortData[n/4-1]);
+		Q2 = min(sortData[n/2],sortData[n/2-1]);
+		Q3 = max(sortData[3*n/4],sortData[3*n/4-1]);
+		// 3. Межквартильный диапазон
+		dQ = Q3 - Q1;
+		// 4. Верхняя граница выбросов.
+		maxLim = Q3 + 3 * dQ;    
+
+		delete [] sortData;
+
+		//return (maxLim>=255)? 255 : static_cast<unsigned char>(maxLim);
 	}
 
+
+
+
+	void mySetPriorityClass(void)
+	{
+		HANDLE procHandle = GetCurrentProcess();
+		DWORD priorityClass = GetPriorityClass(procHandle);
+
+		if (!SetPriorityClass(procHandle, HIGH_PRIORITY_CLASS))
+			std::cerr << "SetPriorityClass" << std::endl;
+
+		priorityClass = GetPriorityClass(procHandle);
+		std::cerr << "Priority Class is set to : ";
+		switch(priorityClass)
+		{
+		case HIGH_PRIORITY_CLASS:
+			std::cerr << "HIGH_PRIORITY_CLASS\r\n";
+			break;
+		case IDLE_PRIORITY_CLASS:
+			std::cerr << "IDLE_PRIORITY_CLASS\r\n";
+			break;
+		case NORMAL_PRIORITY_CLASS:
+			std::cerr << "NORMAL_PRIORITY_CLASS\r\n";
+			break;
+		case REALTIME_PRIORITY_CLASS:
+			std::cerr << "REALTIME_PRIORITY_CLASS\r\n";
+			break;
+		default:
+			std::cerr <<"Unknown priority class\r\n";
+		}
+	}
 } // namespace parus
 
 	////	2.2.84	Получить коэффициент усиления (1002)

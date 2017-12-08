@@ -10,14 +10,16 @@
 // Оптимальный выход в использовании машинно независимых форматов
 // данных. Например HDF, CDF и.т.п.
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+// Для ускорения сохранения в файл используются функции Windows API.
+#include <windows.h>
+
 #include <iomanip>
 #include <string>
 #include <sstream>
 #include <stdexcept>
+#include <climits>
 #include <conio.h>
-
-// Для ускорения сохранения в файл используются функции Windows API.
-#include <windows.h>
 
 // Заголовочные файлы для работы с модулем АЦП.
 // Включение в проект библиотеки импорта daqdrv.dll
@@ -167,20 +169,23 @@ namespace parus {
 	class lineADC
 	{
 		std::vector<short> _re, _im;
-		unsigned long *_buf; // указатель на аппаратный буфер
+		unsigned long *_buf; // указатель на копию аппаратного буфера
 		short _saved_buf_size; // размер буфера для сохранения результатов (уменьшаем размер выходного файла)
 	public:
-		lineADC(void){};
-		lineADC(unsigned long *buf, short saved_buf_size);
+		lineADC();
+		lineADC(unsigned long *buf);
+		~lineADC();
 
-		void fill(void);
+		void fill(unsigned long *buf);
 		void setSavedSize(short size){_saved_buf_size = size;}
 		short getSavedSize(void){return _saved_buf_size;}
-		void setADCBufer(unsigned long *buf){_buf = buf;}
-		unsigned long * getADCBufer(void){return _buf;}
+		unsigned long * getBufer(void){return _buf;}
+
+		void lineADC::calculateStatistics(void);
 	};
 
 	int comp(const void *i, const void *j);
+	void mySetPriorityClass(void);
 
 } // namespace parus
 

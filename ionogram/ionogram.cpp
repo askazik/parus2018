@@ -8,7 +8,7 @@ using namespace parus;
 int main(void)
 {	
 	setlocale(LC_ALL,"Russian"); // настройка локали на вывод сообщений по-русски
-	SetPriorityClass();
+	mySetPriorityClass();
 
     // ===========================================================================================
     // 1. Читаем файл конфигурации для сеанса.
@@ -69,32 +69,4 @@ int main(void)
 	Beep( 1500, 300 );
 
 	return RetStatus;
-}
-
-void SetPriorityClass(void){
-	HANDLE procHandle = GetCurrentProcess();
-	DWORD priorityClass = GetPriorityClass(procHandle);
-
-	if (!SetPriorityClass(procHandle, HIGH_PRIORITY_CLASS))
-		std::cerr << "SetPriorityClass" << std::endl;
-
-	priorityClass = GetPriorityClass(procHandle);
-	std::cerr << "Priority Class is set to : ";
-	switch(priorityClass)
-	{
-	case HIGH_PRIORITY_CLASS:
-		std::cerr << "HIGH_PRIORITY_CLASS\r\n";
-		break;
-	case IDLE_PRIORITY_CLASS:
-		std::cerr << "IDLE_PRIORITY_CLASS\r\n";
-		break;
-	case NORMAL_PRIORITY_CLASS:
-		std::cerr << "NORMAL_PRIORITY_CLASS\r\n";
-		break;
-	case REALTIME_PRIORITY_CLASS:
-		std::cerr << "REALTIME_PRIORITY_CLASS\r\n";
-		break;
-	default:
-		std::cerr <<"Unknown priority class\r\n";
-	}
 }
