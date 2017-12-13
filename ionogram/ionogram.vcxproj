@@ -78,12 +78,14 @@
   <ItemGroup>
     <ClCompile Include="config.cpp" />
     <ClCompile Include="ionogram.cpp" />
+    <ClCompile Include="lineADC.cpp" />
     <ClCompile Include="parus.cpp" />
     <ClCompile Include="tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h" />
     <ClInclude Include="ionogram.h" />
+    <ClInclude Include="lineADC.h" />
     <ClInclude Include="parus.h" />
     <ClInclude Include="tinyxml2.h" />
   </ItemGroup>
