@@ -75,23 +75,9 @@ namespace parus {
 	struct unit
 	{
 		std::string _name;
+		Measurement _meas;
 		std::map<std::string, unsigned> _map; // сохраняем пару ключ/значение
-
-		void fill(const XML::XMLElement *parent)
-		{
-			_name = (parent->Attribute("name")) ? std::string(parent->Attribute("name")) : "";
-
-			const XML::XMLElement *element;
-			for (
-				element = parent->FirstChildElement();
-				element;
-				element = element->NextSiblingElement()
-			)
-			{
-				std::string name = element->Name();
-				_map.insert(std::pair<std::string, unsigned>(name,element->IntText(0)));
-			}
-		}
+		void fill(const XML::XMLElement *parent);
 	};
 
 	// Базовый блок конфигурационного xml-файла
@@ -113,9 +99,9 @@ namespace parus {
 
 		void findMeasurement(Measurement mes);
 		struct tm getUTC(void);
-
-		static const char* MeasurementNames[];
 	public:
+		static const char* MeasurementNames[];
+
 		xml_unit(Measurement mes = MEASUREMENT, std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME);
 		std::string getFileName(void){return _fullFileName;}
 		const XML::XMLElement *getXMLModule(int i){return _xml_modules[i];}

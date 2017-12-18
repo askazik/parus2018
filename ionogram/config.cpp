@@ -13,6 +13,30 @@ namespace parus {
 	// ===========================================================================
 	const char* xml_unit::MeasurementNames[] = {"measurement", "ionogram", "amplitudes" }; // имена блоков измерений
 
+	void unit::fill(const XML::XMLElement *parent)
+	{
+		_name = (parent->Attribute("name")) ? std::string(parent->Attribute("name")) : "";
+
+		if(_name.compare(""))
+		{
+			int i = 0;
+			while(strcmp(_name.c_str(),xml_unit::MeasurementNames[i]))
+				i++;
+			_meas = (Measurement)i;
+		}
+
+		const XML::XMLElement *element;
+		for (
+			element = parent->FirstChildElement();
+			element;
+			element = element->NextSiblingElement()
+		)
+		{
+			std::string name = element->Name();
+			_map.insert(std::pair<std::string, unsigned>(name,element->IntText(0)));
+		}
+	}
+
 	/// <summary>
 	/// Initializes a new instance of the base <see cref="xmlunit"/> class.
 	/// </summary>

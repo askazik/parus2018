@@ -10,6 +10,34 @@ int main(void)
 	setlocale(LC_ALL,"Russian"); // настройка локали на вывод сообщений по-русски
 	mySetPriorityClass();
 
+	try	
+	{
+		CADCOverflowException e = CADCOverflowException(15000, true, false);
+		CFrequencyException ee(e, 5600);
+		throw ee;
+	}
+	catch(CParusException &e)
+	{
+		std::cerr << std::endl;
+			std::cerr << "Сообщение   : " << e.what() << std::endl;
+			std::cerr << "Тип         : " << typeid(e).name() << std::endl;
+
+		if(typeid(e) == typeid(CADCOverflowException))
+		{
+			CADCOverflowException ee = dynamic_cast<CADCOverflowException &>(e);
+			std::cerr << "Высота, км  : " << ee.getHeight() << std::endl;
+			std::cerr << "Переполнение: Re = " << std::boolalpha << ee.getOverflowRe() << ", Im = " << ee.getOverflowIm() << "." << std::endl;
+		}
+
+		if(typeid(e) == typeid(CFrequencyException))
+		{
+			CFrequencyException ee = dynamic_cast<CFrequencyException &>(e);
+			std::cerr << "Высота, км  : " << ee.getHeight() << std::endl;
+			std::cerr << "Переполнение: Re = " << std::boolalpha << ee.getOverflowRe() << ", Im = " << ee.getOverflowIm() << "." << std::endl;
+			std::cerr << "Частота, кГц: " << ee.getFrequency() << std::endl;
+		}
+	}
+
     // ===========================================================================================
     // 1. Читаем файл конфигурации для сеанса.
     // ===========================================================================================
@@ -35,7 +63,7 @@ int main(void)
     // ===========================================================================================
     // 2. Конфигурирование и исполнение сеанса.
     // ===========================================================================================
-	int RetStatus = 0;
+	int RetStatus = -1; // нештатное завершение программы
 	try	
 	{
 		parusWork *work = new parusWork(); // Подготовка аппаратуры к зондированию.
@@ -44,8 +72,11 @@ int main(void)
 		// Перебор по элементам проекта.
 		for(size_t i=0; i < project.getModulesCount(); i++)
 		{
-			switch(project.getMeasurement())
+			unit tmp = project.getModule(i);
+			switch(tmp._meas)
 			{
+			case MEASUREMENT: // пропускаем т.к. отсутствует реальное измерение
+				break;
 			case IONOGRAM:
 				RetStatus = work->ionogram(&ionogram);
 				break;
@@ -53,7 +84,7 @@ int main(void)
 				RetStatus = work->amplitudes(&amplitudes);
 				break;
 			default:
-				std::cout << "Неизвестный блок измерений <" << project.getMeasurement() << "> в конфигурационном файле." << std::endl;
+				std::cerr << "В конфигурационном файле встретился неизвестный блок измерений." << std::endl;
 			}
 		}
 
@@ -64,7 +95,6 @@ int main(void)
 		std::cerr << std::endl;
 		std::cerr << "Сообщение: " << e.what() << std::endl;
 		std::cerr << "Тип      : " << typeid(e).name() << std::endl;
-		RetStatus = -1;
 	}
 	Beep( 1500, 300 );
 

@@ -738,7 +738,8 @@ namespace parus {
 			adjustSounding(curFrq);
 
 			// Инициализация массива суммирования нулями.
-			cleanLineAccumulator();
+			//cleanLineAccumulator();
+			lineADC line;
 			for (unsigned k = 0; k < ionogram->getPulseCount(); k++) // счётчик циклов суммирования на одной частоте
 			{
 				ASYNC_TRANSFER(); // запустим АЦП
@@ -750,7 +751,19 @@ namespace parus {
 				// Остановим АЦП
 				READ_ABORTIO();					
 
-				accumulateLine(curFrq); // частота нужна для заполнения журнала
+				//accumulateLine(curFrq); // частота нужна для заполнения журнала
+				try
+				{
+					line.fill(getBuffer());
+				}
+				catch(std::exception &e)
+				{
+					if(!strcmp(typeid(e).name(),"range_error"))
+					{
+						// журналирование ошибки для текущей частоты
+					}
+				}
+
 				counter--; // приступаем к обработке следующего импульса
 			}
 			// усредним по количеству импульсов зондирования на одной частоте

@@ -12,5 +12,6 @@
 // Внутренние заголовочные файлы
 #include "config.h"
 #include "parus.h"
+#include "ParusException.h"
 
 #endif // __IONOGRAM_H__

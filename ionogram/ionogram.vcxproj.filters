@@ -30,6 +30,9 @@
     <ClCompile Include="lineADC.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ParusException.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tinyxml2.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="lineADC.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ParusException.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,4 +1,3 @@
-#pragma once
 // ===========================================================================
 // Заголовочный файл для работы с линией АЦП.
 // ===========================================================================
@@ -13,6 +12,9 @@
 #include <cmath>
 #include <vector>
 
+#include <windows.h>
+
+#include "ParusException.h"
 
 // 14 бит - без знака, 13 бит по модулю со знаком для каждой квадратуры = 8191.
 #define __AMPLITUDE_MAX__ 8190 // константа, определяющая максимум амплитуды, выше которого подозреваем ограничение сигнала
@@ -91,15 +93,15 @@ namespace parus {
 	// Обработка строки, измеренной АЦП.
 	class lineADC
 	{
-		std::vector<short> _re, _im, _abs;
+		std::vector<int> _re, _im, _abs;
 		unsigned long *_buf; // указатель на копию аппаратного буфера
 		short _saved_buf_size; // размер буфера для сохранения результатов (уменьшаем размер выходного файла)
 	public:
 		lineADC();
-		lineADC(unsigned long *buf);
+		lineADC(BYTE *buf);
 		~lineADC();
 
-		bool fill(unsigned long *buf);
+		bool fill(BYTE *buf);
 		void setSavedSize(short size){_saved_buf_size = size;}
 		short getSavedSize(void){return _saved_buf_size;}
 		unsigned long * getBufer(void){return _buf;}

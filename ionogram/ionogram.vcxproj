@@ -80,6 +80,7 @@
     <ClCompile Include="ionogram.cpp" />
     <ClCompile Include="lineADC.cpp" />
     <ClCompile Include="parus.cpp" />
+    <ClCompile Include="ParusException.cpp" />
     <ClCompile Include="tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -87,6 +88,7 @@
     <ClInclude Include="ionogram.h" />
     <ClInclude Include="lineADC.h" />
     <ClInclude Include="parus.h" />
+    <ClInclude Include="ParusException.h" />
     <ClInclude Include="tinyxml2.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
