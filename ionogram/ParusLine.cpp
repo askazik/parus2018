@@ -1,4 +1,4 @@
-#include "lineADC.h"
+#include "ParusLine.h"
 
 namespace parus {
 

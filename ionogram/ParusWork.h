@@ -12,8 +12,8 @@
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 // Заголовочные файлы для работы с данными.
-#include "config.h"
-#include "lineADC.h"
+#include "ParusConfig.h"
+#include "ParusLine.h"
 
 // Для ускорения сохранения в файл используются функции Windows API.
 #include <windows.h>
