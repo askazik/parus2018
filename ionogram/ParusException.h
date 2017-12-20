@@ -2,6 +2,7 @@
 #define __PARUSEXCEPTION_H__
 
 #include <exception>
+#include <ostream>
 
 class CParusException: public std::exception
 {
@@ -13,24 +14,25 @@ public:
 	{
 		return "The Parus exception happened.";
 	}
+	friend std::ostream& operator<<(std::ostream &os, const CParusException& obj);
 };
 
 class CADCOverflowException: public CParusException
 {
 protected:
-	unsigned _height; // высота, м
+	unsigned _height_number; // номер высоты
 	bool _overflowRe; // переполнение в первом отсчёте (re) 
 	bool _overflowIm; // переполнение во втором отсчёте (im)
 public:
 	CADCOverflowException(): 
-	  _height(0), _overflowRe(false), _overflowIm(false) {};
-	CADCOverflowException(unsigned height, bool isRe, bool isIm): 
-	  _height(height), _overflowRe(isRe), _overflowIm(isIm) {};
+	  _height_number(0), _overflowRe(false), _overflowIm(false) {};
+	CADCOverflowException(unsigned h_num, bool isRe, bool isIm): 
+	  _height_number(h_num), _overflowRe(isRe), _overflowIm(isIm) {};
 	~CADCOverflowException(void){};
 
 	CADCOverflowException(const CADCOverflowException &obj)
     {      
-        _height = obj.getHeight();
+        _height_number = obj.getHeightNumber();
 		_overflowRe = obj.getOverflowRe();
 		_overflowIm = obj.getOverflowIm();
     }
@@ -39,9 +41,9 @@ public:
 	{
 		return "The ADC overflow exception happened.";
 	}
-	const unsigned getHeight() const throw()
+	const unsigned getHeightNumber() const throw()
 	{
-		return _height;
+		return _height_number;
 	}
 	const bool getOverflowRe() const throw()
 	{
@@ -51,6 +53,7 @@ public:
 	{
 		return _overflowIm;
 	}
+	friend std::ostream& operator<<(std::ostream &os, const CADCOverflowException& obj);
 };
 
 class CFrequencyException: public CADCOverflowException
@@ -60,7 +63,7 @@ public:
 	CFrequencyException(void): CADCOverflowException(), _frequency(0) {}
 	CFrequencyException(CADCOverflowException &e, unsigned frequency): _frequency(frequency) 
 	{
-		_height = e.getHeight();
+		_height_number = e.getHeightNumber();
 		_overflowRe = e.getOverflowRe();
 		_overflowIm = e.getOverflowIm();
 	}
@@ -74,6 +77,7 @@ public:
 	{
 		return _frequency;
 	}
+	friend std::ostream& operator<<(std::ostream &os, const CFrequencyException& obj);
 };
 
 #endif // __PARUSEXCEPTION_H__

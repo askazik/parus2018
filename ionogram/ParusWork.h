@@ -67,9 +67,6 @@ namespace parus {
 
 		void closeOutputFile(void);
 
-		// Работа с ионограммами
-		unsigned short *_sum_abs; // массив абсолютных значений
-
 		// Работа с файлом журнала
 		std::vector<std::string> _log;
 
@@ -82,6 +79,12 @@ namespace parus {
 
 		parusWork(void);
 		~parusWork(void);
+
+		unsigned int get_g(void){return _g;}
+		unsigned int get_fsync(void){return _fsync;}
+		unsigned int get_pulse_duration(void){return _pulse_duration;}
+		unsigned int get_height_count(void){return _height_count;}
+		unsigned int get_height_step(void){return _height_step;}
 
 		M214x3M_DRVPARS initADC(unsigned int nHeights);
 
@@ -99,10 +102,6 @@ namespace parus {
 
 		// Работа с ионограммами
 		void openIonogramFile(xml_ionogram* conf);
-		void cleanLineAccumulator(void);
-		void accumulateLine(unsigned short curFrq); // суммирование по импульсам на одной частоте
-		void averageLine(unsigned pulse_count); // усреднение по импульсам на одной частоте
-		unsigned char getThereshold(unsigned char *arr, unsigned n);
 		void saveLine(unsigned short curFrq); // Усечение данных до char (сдвиг на 6 бит) и сохранение линии в файле.
 		void saveDirtyLine(void);
 
@@ -115,7 +114,6 @@ namespace parus {
 		std::vector<std::string> getLog(void){ return _log;}
 	};
 
-	int comp(const void *i, const void *j);
 	void mySetPriorityClass(void);
 
 } // namespace parus

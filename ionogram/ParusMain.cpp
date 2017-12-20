@@ -10,34 +10,6 @@ int main(void)
 	setlocale(LC_ALL,"Russian"); // настройка локали на вывод сообщений по-русски
 	mySetPriorityClass();
 
-	try	
-	{
-		CADCOverflowException e = CADCOverflowException(15000, true, false);
-		CFrequencyException ee(e, 5600);
-		throw ee;
-	}
-	catch(CParusException &e)
-	{
-		std::cerr << std::endl;
-			std::cerr << "Сообщение   : " << e.what() << std::endl;
-			std::cerr << "Тип         : " << typeid(e).name() << std::endl;
-
-		if(typeid(e) == typeid(CADCOverflowException))
-		{
-			CADCOverflowException ee = dynamic_cast<CADCOverflowException &>(e);
-			std::cerr << "Высота, км  : " << ee.getHeight() << std::endl;
-			std::cerr << "Переполнение: Re = " << std::boolalpha << ee.getOverflowRe() << ", Im = " << ee.getOverflowIm() << "." << std::endl;
-		}
-
-		if(typeid(e) == typeid(CFrequencyException))
-		{
-			CFrequencyException ee = dynamic_cast<CFrequencyException &>(e);
-			std::cerr << "Высота, км  : " << ee.getHeight() << std::endl;
-			std::cerr << "Переполнение: Re = " << std::boolalpha << ee.getOverflowRe() << ", Im = " << ee.getOverflowIm() << "." << std::endl;
-			std::cerr << "Частота, кГц: " << ee.getFrequency() << std::endl;
-		}
-	}
-
     // ===========================================================================================
     // 1. Читаем файл конфигурации для сеанса.
     // ===========================================================================================

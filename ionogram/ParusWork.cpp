@@ -97,7 +97,6 @@ namespace parus {
 	parusWork::~parusWork(void){
 		// Free buffers of memory
 		delete [] _fullBuf;
-		delete [] _sum_abs;
 
 		if(_DAQ)
 			DAQ_ioctl(_DAQ, DAQ_ioctlREAD_MEM_RELEASE, NULL);
@@ -435,54 +434,6 @@ namespace parus {
 			throw std::runtime_error("Ошибка записи заголовка файла данных.");    
 	}
 
-	void parusWork::cleanLineAccumulator(void)
-	{
-		for(size_t i = 0; i < _height_count; i++)
-			_sum_abs[i] = 0;
-	}
-
-	void parusWork::accumulateLine(unsigned short curFrq)
-	{
-		// В буффере АЦП сохранены два сырых 16-битных чередующихся канала на одной частоте (count - количество 32-разрядных слов).
-		memcpy(_fullBuf, getBuffer(), getBufferSize()); // копируем весь аппаратный буфер
-		
-		short re, im, abstmp;
-		short max_abs_re = 0, max_abs_im = 0;
-	    for(size_t i = 0; i < _height_count; i++)
-		{
-	        // Используем двухканальную интерпретацию через анонимную структуру
-	        union {
-	            unsigned long word;     // 4-байтное слово двухканального АЦП
-	            adcTwoChannels twoCh;  // двухканальные (квадратурные) данные
-	        };
-	            
-			// Разбиение на квадратуры. 
-			// Значимы только старшие 14 бит. Младшие 2 бит - технологическая окраска.
-	        word = _fullBuf[i];
-			re = twoCh.re.value>>2;
-	        im = twoCh.im.value>>2;
-
-			max_abs_re = (abs(re) > abs(max_abs_re)) ? re : max_abs_re;
-			max_abs_im = (abs(im) > abs(max_abs_im)) ? im : max_abs_im;
-	
-	        // Объединим квадратурную информацию в одну амплитуду.
-			abstmp = static_cast<unsigned short>(floor(sqrt(re*re*1.0 + im*im*1.0)));
-			_sum_abs[i] += abstmp;
-		} 
-
-		// Заполним журнал
-		std::stringstream ss;
-		ss << curFrq << ' ' << max_abs_re << ' ' << max_abs_im << ' ' <<
-			((abs(max_abs_re) >= 8191 || abs(max_abs_im) >= 8191) ? "false" : "true");
-		_log.push_back(ss.str());
-	}
-
-	void parusWork::averageLine(unsigned pulse_count)
-	{
-	    for(size_t i = 0; i < _height_count; i++)
-			_sum_abs[i] /= pulse_count;  
-	}
-
 	void parusWork::saveDirtyLine(void)
 	{
 		// Writing data from buffer into file (unsigned long = unsigned int)
@@ -691,35 +642,6 @@ namespace parus {
 		delete [] dataLine;
 	} 
 
-	// Возвращает уровень более которого наблюдается выброс.
-	unsigned char parusWork::getThereshold(unsigned char *arr, unsigned n)
-	{
-		unsigned char *sortData = new unsigned char [n]; // буферный массив для сортировки
-		unsigned char Q1, Q3, dQ;
-		unsigned short maxLim = 0;
-
-		// 1. Упорядочим данные по возрастанию.
-		memcpy(sortData, arr, n);
-		qsort(sortData, n, sizeof(unsigned char), comp);
-		// 2. Квартили (n - чётное, степень двойки!!!)
-		Q1 = min(sortData[n/4],sortData[n/4-1]);
-		Q3 = max(sortData[3*n/4],sortData[3*n/4-1]);
-		// 3. Межквартильный диапазон
-		dQ = Q3 - Q1;
-		// 4. Верхняя граница выбросов.
-		maxLim = Q3 + 3 * dQ;    
-
-		delete [] sortData;
-
-		return (maxLim>=255)? 255 : static_cast<unsigned char>(maxLim);
-	}
-
-	// сравнение целых
-	int comp(const void *i, const void *j)
-	{
-		return *(unsigned char *)i - *(unsigned char *)j;
-	}
-
 	int parusWork::ionogram(xml_unit* conf)
 	{
 		xml_ionogram* ionogram = (xml_ionogram*)conf;
@@ -727,6 +649,7 @@ namespace parus {
 		DWORD msTimeout = 25;
 		unsigned short curFrq; // текущая частота зондирования, кГц
 		int counter; // число импульсов от генератора
+		bool keyReduceGain = false; // флаг уменьшения мощности зондирования при ограничении сигнала
 
 		curFrq = ionogram->getModule(0)._map.at("fbeg");
 		unsigned fstep = ionogram->getModule(0)._map.at("fstep");
@@ -735,6 +658,11 @@ namespace parus {
 
 		while(counter) // обрабатываем импульсы генератора
 		{
+			if(keyReduceGain)
+			{
+				_g--; // ослабляем регистрируемую амплитуду вдвое (6 дБ)
+				keyReduceGain = false;
+			}
 			adjustSounding(curFrq);
 
 			// Инициализация массива суммирования нулями.
@@ -751,29 +679,33 @@ namespace parus {
 				// Остановим АЦП
 				READ_ABORTIO();					
 
-				//accumulateLine(curFrq); // частота нужна для заполнения журнала
 				try
 				{
-					line.fill(getBuffer());
+					line.accumulate(getBuffer());
 				}
-				catch(std::exception &e)
+				catch(CFrequencyException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
 				{
-					if(!strcmp(typeid(e).name(),"range_error"))
-					{
-						// журналирование ошибки для текущей частоты
-					}
+					// 1. Запись в журнал
+					std::stringstream ss;
+					ss << curFrq << '\t' << e.getHeightNumber() * ionogram->getHeightStep()  << '\t' 
+						<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
+					_log.push_back(ss.str());
+					// 2. Изменение усиления сигнала (выполняется для последующей частоты зондирования)
+					keyReduceGain = true;
+					// std::cerr << e;
 				}
-
 				counter--; // приступаем к обработке следующего импульса
 			}
 			// усредним по количеству импульсов зондирования на одной частоте
 			if(ionogram->getPulseCount() > 1)
-				averageLine(ionogram->getPulseCount()); 
+				line.average(ionogram->getPulseCount());
 			// Сохранение линии в файле.
+			CLineBuf buf;
 			switch(ionogram->getVersion())
 			{
 			case 0: // ИПГ
-				saveLine(curFrq); // Усечение данных до char (сдвиг на 6 бит)
+				//saveLine(curFrq); // Усечение данных до char (сдвиг на 6 бит)
+				buf = line.getIPGBufer(this,curFrq);
 				break;
 			case 1: // без потерь
 				saveDirtyLine();

@@ -15,6 +15,7 @@
 #include <windows.h>
 
 #include "ParusException.h"
+#include "ParusWork.h"
 
 // 14 бит - без знака, 13 бит по модулю со знаком дл€ каждой квадратуры = 8191.
 #define __AMPLITUDE_MAX__ 8190 // константа, определ€юща€ максимум амплитуды, выше которого подозреваем ограничение сигнала
@@ -74,26 +75,27 @@ namespace parus {
 	struct Statistics
 	{
 		double Q1, Q3, dQ; // квартили и межквартильный диапазон
-		double maxLim; // верхн€€ граница выбросов
+		double thereshold; // верхн€€ граница выбросов
 		double median; // медиана
 		double mean; // среднее значение
 		double std; // стандартное отклонение (корень из дисперсии)
 		double min, max;
 	};
 
-	struct IPGLine
+	struct CLineBuf
 	{
 		unsigned count; // число байт в массиве дл€ записи строки
 		unsigned char *arr; // указатель на массив подготовленных дл€ записи в файл данных
 
-		IPGLine(void) : count(__COUNT_MAX__) {arr = new unsigned char [count];}
-		~IPGLine(void){delete [] arr;}
+		CLineBuf(void) : count(__COUNT_MAX__) {arr = new unsigned char [count];}
+		~CLineBuf(void){delete [] arr;}
 	};
 
 	// ќбработка строки, измеренной ј÷ѕ.
 	class lineADC
 	{
-		std::vector<int> _re, _im, _abs;
+		std::vector<int> _re, _im;
+		std::vector<double> _abs;
 		unsigned long *_buf; // указатель на копию аппаратного буфера
 		short _saved_buf_size; // размер буфера дл€ сохранени€ результатов (уменьшаем размер выходного файла)
 	public:
@@ -101,13 +103,15 @@ namespace parus {
 		lineADC(BYTE *buf);
 		~lineADC();
 
-		bool fill(BYTE *buf);
+		void accumulate(BYTE *buf);
+		void average(unsigned pulse_count);
 		void setSavedSize(short size){_saved_buf_size = size;}
 		short getSavedSize(void){return _saved_buf_size;}
 		unsigned long * getBufer(void){return _buf;}
-		IPGLine getIPGBufer(void);
+		CLineBuf getIPGBufer(parusWork parus, unsigned short curFrq);
 
-		Statistics calculateStatistics(std::vector<short> vec);
+		template<typename T>
+		Statistics calculateStatistics(std::vector<T>& vec);
 	};
 
 } // namespace parus
