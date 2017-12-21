@@ -77,8 +77,10 @@ namespace parus {
 		double Q1, Q3, dQ; // квартили и межквартильный диапазон
 		double thereshold; // верхняя граница выбросов
 		double median; // медиана
+		double median_top_half; // медиана верхней половины выборки - для определения смещения 0
 		double mean; // среднее значение
-		double std; // стандартное отклонение (корень из дисперсии)
+		double std_mean; // стандартное отклонение (корень из дисперсии) от среднего
+		double std_median; // стандартное отклонение (корень из дисперсии) от медианы
 		double min, max;
 	};
 
@@ -86,6 +88,7 @@ namespace parus {
 	{
 		unsigned count; // число байт в массиве для записи строки
 		unsigned char *arr; // указатель на массив подготовленных для записи в файл данных
+		double zero_shift; // смещение от 0 (скорее всего - медиана)
 
 		CLineBuf(void) : count(__COUNT_MAX__) {arr = new unsigned char [count];}
 		~CLineBuf(void){delete [] arr;}

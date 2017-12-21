@@ -21,7 +21,7 @@ namespace parus {
 	lineADC::lineADC(BYTE *buf)
 	{
 		lineADC();
-		fill(buf);
+		accumulate(buf);
 	}
 
 	// „истим буферы данных
@@ -75,11 +75,16 @@ namespace parus {
 		Statistics _out;
 		int n = vec.size();
 
+		std::vector<T> vec_half;
+		vec_half.insert(vec_half.begin(),vec.begin()+(n/2-1),vec.end()); // верхн€€ половина вектора
+
 		// 1. ”пор€дочим данные по возрастанию.
 		sort(vec.begin(), vec.end());
+		sort(vec_half.begin(), vec_half.end());
 		// 2.  вартили (n - чЄтное, степень двойки!!!)
 		_out.Q1 = (vec.at(n/4)+vec.at(n/4-1))/2.;
 		_out.median = (vec.at(n/2),vec.at(n/2-1))/2.;
+		_out.median_top_half = (vec_half[n/2],vec_half[n/2-1])/2.;
 		_out.Q3 = (vec.at(3*n/4),vec.at(3*n/4-1))/2.;
 		// 3. ћежквартильный диапазон
 		_out.dQ = _out.Q3 - _out.Q1;
@@ -89,12 +94,19 @@ namespace parus {
 		// среднее значение
 		_out.mean = std::accumulate(vec.begin(), vec.end(), 0) / n;
 
-		// стандартное отклонение
+		// стандартное отклонение от среднего значени€
 		std::vector<double> diff(n);
 		std::transform(vec.begin(), vec.end(), diff.begin(),
                std::bind2nd(std::minus<double>(), _out.mean));
 		double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-		_out.std = std::sqrt(sq_sum /(n-1));
+		_out.std_mean = std::sqrt(sq_sum /(n-1));
+
+		// стандартное отклонение от медианы
+		std::vector<double> diff(n);
+		std::transform(vec.begin(), vec.end(), diff.begin(),
+               std::bind2nd(std::minus<double>(), _out.median));
+		double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+		_out.std_median = std::sqrt(sq_sum /(n-1));
 
 		// минимальное и максимальное значени€
 		_out.min = vec.front();
@@ -189,6 +201,10 @@ namespace parus {
 		// сохран€ем ранее сформированную цепочку выбросов
 		if(countLine)
 			memcpy(tmpArray+nFrequencyData, tmpLine, countLine);
+
+		_out.count = countLine + nFrequencyData;
+		_out.zero_shift = tmp.median_top_half;
+		_out.arr
 
 		//// Writing data from buffers into file (unsigned long = unsigned int)
 		//BOOL	bErrorFlag = FALSE;

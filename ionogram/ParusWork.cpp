@@ -28,10 +28,6 @@ namespace parus {
 		buf_size = static_cast<unsigned long>(_height_count * sizeof(unsigned long)); // размер буфера строки в байтах
 		_fullBuf = new unsigned long [_height_count];
 
-		// Запрос памяти для аккумулятора абсолютных значений
-		_sum_abs = new unsigned short [_height_count];
-		cleanLineAccumulator();
-
 		// =================================================================================================
 		// Выделение буфера для работы АЦП.
 		// =================================================================================================
@@ -658,11 +654,11 @@ namespace parus {
 
 		while(counter) // обрабатываем импульсы генератора
 		{
-			if(keyReduceGain)
-			{
-				_g--; // ослабляем регистрируемую амплитуду вдвое (6 дБ)
-				keyReduceGain = false;
-			}
+			//if(keyReduceGain)
+			//{
+			//	_g--; // ослабляем регистрируемую амплитуду вдвое (6 дБ)
+			//	keyReduceGain = false;
+			//}
 			adjustSounding(curFrq);
 
 			// Инициализация массива суммирования нулями.
@@ -683,7 +679,7 @@ namespace parus {
 				{
 					line.accumulate(getBuffer());
 				}
-				catch(CFrequencyException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
+				catch(CADCOverflowException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
 				{
 					// 1. Запись в журнал
 					std::stringstream ss;
@@ -691,7 +687,7 @@ namespace parus {
 						<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
 					_log.push_back(ss.str());
 					// 2. Изменение усиления сигнала (выполняется для последующей частоты зондирования)
-					keyReduceGain = true;
+					// keyReduceGain = true;
 					// std::cerr << e;
 				}
 				counter--; // приступаем к обработке следующего импульса
