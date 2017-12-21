@@ -86,8 +86,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ParusConfig.h" />
-    <ClInclude Include="ParusMain.h" />
     <ClInclude Include="ParusLine.h" />
+    <ClInclude Include="ParusMain.h" />
     <ClInclude Include="ParusWork.h" />
     <ClInclude Include="ParusException.h" />
     <ClInclude Include="tinyxml2.h" />

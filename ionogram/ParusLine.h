@@ -4,6 +4,8 @@
 #ifndef __LINEADC_H__
 #define __LINEADC_H__
 
+#include <windows.h>
+
 #include <algorithm>
 #include <numeric>
 #include <string>
@@ -12,15 +14,15 @@
 #include <cmath>
 #include <vector>
 
-#include <windows.h>
-
+#include "ParusConfig.h"
 #include "ParusException.h"
-#include "ParusWork.h"
 
 // 14 бит - без знака, 13 бит по модулю со знаком для каждой квадратуры = 8191.
 #define __AMPLITUDE_MAX__ 8190 // константа, определяющая максимум амплитуды, выше которого подозреваем ограничение сигнала
 // Число высот (размер исходного буфера АЦП при зондировании, fifo нашего АЦП 4Кб. Т.е. не больше 1024 отсчётов для каждого из двух квадратурных каналов).
 #define __COUNT_MAX__ 1024 // константа, определяющая максимуальное число единовременно измеряемых спаренных квадратурных отсчётов
+
+#endif // __LINEADC_H__
 
 namespace parus {
 
@@ -88,7 +90,8 @@ namespace parus {
 	{
 		unsigned count; // число байт в массиве для записи строки
 		unsigned char *arr; // указатель на массив подготовленных для записи в файл данных
-		double zero_shift; // смещение от 0 (скорее всего - медиана)
+		int shift_0; // смещение (скорее всего - медиана) от 0 первого канала (Re)
+		int shift_1; // смещение (скорее всего - медиана) от 0 второго канала (Im)
 
 		CLineBuf(void) : count(__COUNT_MAX__) {arr = new unsigned char [count];}
 		~CLineBuf(void){delete [] arr;}
@@ -100,7 +103,15 @@ namespace parus {
 		std::vector<int> _re, _im;
 		std::vector<double> _abs;
 		unsigned long *_buf; // указатель на копию аппаратного буфера
-		short _saved_buf_size; // размер буфера для сохранения результатов (уменьшаем размер выходного файла)
+		unsigned char *_buf_ionogram; // указатель на буфер строки ионограммы
+
+		size_t _real_buf_size; // размер буфера для сохранения результатов (уменьшаем размер выходного файла)
+		double zero_shift_re;
+		double zero_shift_im;
+
+		template<typename T>
+		double calculateZeroShift(const std::vector<T>& vec);
+
 	public:
 		lineADC();
 		lineADC(BYTE *buf);
@@ -108,15 +119,20 @@ namespace parus {
 
 		void accumulate(BYTE *buf);
 		void average(unsigned pulse_count);
-		void setSavedSize(short size){_saved_buf_size = size;}
-		short getSavedSize(void){return _saved_buf_size;}
-		unsigned long * getBufer(void){return _buf;}
-		CLineBuf getIPGBufer(parusWork parus, unsigned short curFrq);
+		void setSavedSize(size_t size){_real_buf_size = size;}
+		size_t getSavedSize(void){return _real_buf_size;}
+		unsigned long* getBufer(void){return _buf;}
+		
+		void prepareIPG_IonogramBuffer(xml_ionogram* ionogram, const unsigned short curFrq);
+		void prepareDirty_IonogramBuffer(void);
 
-		template<typename T>
-		Statistics calculateStatistics(std::vector<T>& vec);
+		//template<typename T>
+		//Statistics calculateStatistics(const std::vector<T>& vec);
+
+		// get
+		short getShiftRe(){return static_cast<short>(zero_shift_re);}
+		short getShiftIm(){return static_cast<short>(zero_shift_im);}
+		unsigned char* returnIonogramBuffer(){return _buf_ionogram;}
 	};
 
 } // namespace parus
-
-#endif // __LINEADC_H__

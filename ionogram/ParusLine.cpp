@@ -6,7 +6,10 @@ namespace parus {
 	// Инициализация без заполнения.
 	lineADC::lineADC() :
 		_buf(nullptr),
-		_saved_buf_size(__COUNT_MAX__)
+		_buf_ionogram(nullptr),
+		_real_buf_size(__COUNT_MAX__),
+		zero_shift_re(0),
+		zero_shift_im(0)
 	{
 		// Изменим размер вектора. Делаем только один раз!!!
 		_re.resize(__COUNT_MAX__);
@@ -28,6 +31,7 @@ namespace parus {
 	lineADC::~lineADC()
 	{
 		if(_buf) delete [] _buf;
+		if(_buf_ionogram) delete [] _buf_ionogram;
 	}
 
 	// Заполнение обрабатываемых векторов из аппаратного буфера.
@@ -46,95 +50,94 @@ namespace parus {
 			// Разбиение на квадратуры. 
 			// Значимы только старшие 14 бит. Младшие 2 бит - технологическая окраска.
 	        word = buf[i];
-			_re[i] = twoCh.re.value>>2;
-	        _im[i] = twoCh.im.value>>2;
+			_re.at(i) = twoCh.re.value>>2;
+	        _im.at(i) = twoCh.im.value>>2;
 			
 			// Амплитуды суммируем с находящимися в хранилище.
-			_abs[i] += sqrt(pow(static_cast<double>(_re.at(i)),2) + pow(static_cast<double>(_im.at(i)),2));
+			_abs.at(i) += sqrt(pow(static_cast<double>(_re.at(i)),2) + pow(static_cast<double>(_im.at(i)),2));
 		
 			// Выбросим исключение для обработки нештатной ситуации, чтобы уменьшить коэффициент усиления.
 			// В верхней процедуре предусмотреть заполнение частоты, на которой произошло исключение.
-			bool isRe = abs(_re[i]) >= __AMPLITUDE_MAX__;
-			bool isIm = abs(_im[i]) >= __AMPLITUDE_MAX__;
+			bool isRe = abs(_re.at(i)) >= __AMPLITUDE_MAX__;
+			bool isIm = abs(_im.at(i)) >= __AMPLITUDE_MAX__;
 			if(isRe || isIm)
 				throw CADCOverflowException(i, isRe, isIm);
 		}
+		zero_shift_re += calculateZeroShift(_re);
+		zero_shift_im += calculateZeroShift(_im);
 	}
 
 	// Усреднение амплитуды сигнала.
 	void lineADC::average(unsigned pulse_count)
 	{
 		for(size_t i = 0; i < _abs.size(); i++)
-			_abs[i] /= pulse_count;
+			_abs.at(i) /= pulse_count;
+		// Усредним смещение нуля
+		zero_shift_re /= pulse_count;
+		zero_shift_im /= pulse_count;
 	}
 
-	// Возвращает статистику строки данных (short/double).
-	template<typename T>
-	Statistics calculateStatistics(std::vector<T>& vec)
-	{
-		Statistics _out;
-		int n = vec.size();
+	//// Возвращает статистику строки данных (short/double).
+	//template<typename T>
+	//Statistics calculateStatistics(const std::vector<T>& vec)
+	//{
+	//	Statistics _out;
+	//	int n = vec.size();
 
-		std::vector<T> vec_half;
-		vec_half.insert(vec_half.begin(),vec.begin()+(n/2-1),vec.end()); // верхняя половина вектора
+	//	std::vector<T> vec_half;
+	//	vec_half.insert(vec_half.begin(),vec.begin()+(n/2-1),vec.end()); // верхняя половина вектора
 
-		// 1. Упорядочим данные по возрастанию.
-		sort(vec.begin(), vec.end());
-		sort(vec_half.begin(), vec_half.end());
-		// 2. Квартили (n - чётное, степень двойки!!!)
-		_out.Q1 = (vec.at(n/4)+vec.at(n/4-1))/2.;
-		_out.median = (vec.at(n/2),vec.at(n/2-1))/2.;
-		_out.median_top_half = (vec_half[n/2],vec_half[n/2-1])/2.;
-		_out.Q3 = (vec.at(3*n/4),vec.at(3*n/4-1))/2.;
-		// 3. Межквартильный диапазон
-		_out.dQ = _out.Q3 - _out.Q1;
-		// 4. Верхняя граница выбросов.
-		_out.thereshold = _out.Q3 + 3 * _out.dQ;
+	//	// 1. Упорядочим данные по возрастанию.
+	//	sort(vec.begin(), vec.end());
+	//	sort(vec_half.begin(), vec_half.end());
+	//	// 2. Квартили (n - чётное, степень двойки!!!)
+	//	_out.Q1 = (vec.at(n/4)+vec.at(n/4-1))/2.;
+	//	_out.median = (vec.at(n/2),vec.at(n/2-1))/2.;
+	//	_out.median_top_half = (vec_half.at(n/2),vec_half.at(n/2-1))/2.;
+	//	_out.Q3 = (vec.at(3*n/4),vec.at(3*n/4-1))/2.;
+	//	// 3. Межквартильный диапазон
+	//	_out.dQ = _out.Q3 - _out.Q1;
+	//	// 4. Верхняя граница выбросов.
+	//	_out.thereshold = _out.Q3 + 3 * _out.dQ;
 
-		// среднее значение
-		_out.mean = std::accumulate(vec.begin(), vec.end(), 0) / n;
+	//	// среднее значение
+	//	_out.mean = std::accumulate(vec.begin(), vec.end(), 0) / n;
 
-		// стандартное отклонение от среднего значения
-		std::vector<double> diff(n);
-		std::transform(vec.begin(), vec.end(), diff.begin(),
-               std::bind2nd(std::minus<double>(), _out.mean));
-		double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-		_out.std_mean = std::sqrt(sq_sum /(n-1));
+	//	// стандартное отклонение от среднего значения
+	//	std::vector<double> diff(n);
+	//	std::transform(vec.begin(), vec.end(), diff.begin(),
+ //              std::bind2nd(std::minus<double>(), _out.mean));
+	//	double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+	//	_out.std_mean = std::sqrt(sq_sum /(n-1));
 
-		// стандартное отклонение от медианы
-		std::vector<double> diff(n);
-		std::transform(vec.begin(), vec.end(), diff.begin(),
-               std::bind2nd(std::minus<double>(), _out.median));
-		double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-		_out.std_median = std::sqrt(sq_sum /(n-1));
+	//	// стандартное отклонение от медианы
+	//	std::vector<double> diff(n);
+	//	std::transform(vec.begin(), vec.end(), diff.begin(),
+ //              std::bind2nd(std::minus<double>(), _out.median));
+	//	double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+	//	_out.std_median = std::sqrt(sq_sum /(n-1));
 
-		// минимальное и максимальное значения
-		_out.min = vec.front();
-		_out.max = vec.back();
+	//	// минимальное и максимальное значения
+	//	_out.min = vec.front();
+	//	_out.max = vec.back();
 
-		return _out;
-	}
+	//	return _out;
+	//}
 
 	// Усечение данных до char (сдвиг на 6 бит) и сохранение линии в файле.
 	// Упаковка строки ионограммы по алгоритму ИЗМИРАН-ИПГ.
-	// data - сырая строка ионограммы
-	// conf - кофигурация зондирования
-	// numModule - номер модуля зондирования
-	// curFrq - частота зондирования, кГц
-	CLineBuf lineADC::getIPGBufer(parusWork parus, unsigned short curFrq)
+	void lineADC::prepareIPG_IonogramBuffer(xml_ionogram* ionogram, const unsigned short curFrq)
 	{
-		CLineBuf _out;
-
 		// Неизменяемые данные по текущей частоте
 		FrequencyData tmpFrequencyData;
-		tmpFrequencyData.gain_control = static_cast<unsigned short>(parus.get_g() * 6);// !< Значение ослабления входного аттенюатора дБ.
-		tmpFrequencyData.pulse_time = static_cast<unsigned short>(floor(1000./parus.get_fsync()));//!< Время зондирования на одной частоте, [мс].
-		tmpFrequencyData.pulse_length = static_cast<unsigned char>(parus.get_pulse_duration());//!< Длительность зондирующего импульса, [мкc].
-		tmpFrequencyData.band = static_cast<unsigned char>(floor(1000000./parus.get_pulse_duration()));//!< Полоса сигнала, [кГц].
+		tmpFrequencyData.gain_control = static_cast<unsigned short>(ionogram->getGain());// !< Значение ослабления входного аттенюатора дБ.
+		tmpFrequencyData.pulse_time = static_cast<unsigned short>(floor(1000./ionogram->getPulseFrq()));//!< Время зондирования на одной частоте, [мс].
+		tmpFrequencyData.pulse_length = static_cast<unsigned char>(ionogram->getPulseDuration());//!< Длительность зондирующего импульса, [мкc].
+		tmpFrequencyData.band = static_cast<unsigned char>(floor(1000000./ionogram->getPulseDuration()));//!< Полоса сигнала, [кГц].
 		tmpFrequencyData.type = 0;														//!< Вид модуляции (0 - гладкий импульс, 1 - ФКМ).
 
 		// Выделим буфер под упакованную строку. Считаем, что упакованная строка не больше исходной.
-		unsigned n = parus.get_height_count();
+		unsigned n = __COUNT_MAX__;
 		unsigned char *tmpArray = new unsigned char [n];
 		unsigned char *tmpLine = new unsigned char [n];
 		unsigned char *tmpAmplitude = new unsigned char [n];
@@ -144,7 +147,7 @@ namespace parus {
 
 		// Усечение данных до размера 8 бит.
 		for(unsigned i = 0; i < n; i++) 
-			dataLine[i] = static_cast<unsigned char>(static_cast<unsigned short>(_abs[i]) >> 6);
+			dataLine[i] = static_cast<unsigned char>(static_cast<unsigned short>(_abs.at(i)) >> 6);
 
 		SignalResponse tmpSignalResponse;
 		unsigned char countOutliers;
@@ -166,7 +169,7 @@ namespace parus {
 		{
 			if(dataLine[j] > thereshold) // Выброс найден - обрабатываем его.
 			{
-				tmpSignalResponse.height_begin = static_cast<unsigned long>(floor(1.0 * j * parus.get_height_step()));
+				tmpSignalResponse.height_begin = static_cast<unsigned long>(floor(1.0 * j * ionogram->getHeightStep()));
 				tmpSignalResponse.count_samples = 1;
 				tmpAmplitude[tmpSignalResponse.count_samples-1] = dataLine[j];
 				j++; // переход к следующему элементу
@@ -202,28 +205,34 @@ namespace parus {
 		if(countLine)
 			memcpy(tmpArray+nFrequencyData, tmpLine, countLine);
 
-		_out.count = countLine + nFrequencyData;
-		_out.zero_shift = tmp.median_top_half;
-		_out.arr
+		// Заполняем выходную структуру и чистим память.
+		setSavedSize(countLine + nFrequencyData);
+		_buf_ionogram = new unsigned char [getSavedSize()];
+		memcpy(_buf_ionogram, reinterpret_cast<char*>(tmpArray), getSavedSize());
 
-		//// Writing data from buffers into file (unsigned long = unsigned int)
-		//BOOL	bErrorFlag = FALSE;
-		//DWORD	dwBytesWritten = 0;	
-		//bErrorFlag = WriteFile( 
-		//	_hFile,									// open file handle
-		//	reinterpret_cast<char*>(tmpArray),		// start of data to write
-		//	countLine + nFrequencyData,				// number of bytes to write
-		//	&dwBytesWritten,						// number of bytes that were written
-		//	NULL);									// no overlapped structure
-		//if (!bErrorFlag) 
-		//	throw std::runtime_error("Не могу сохранить строку ионограммы в файл.");
+		delete [] tmpLine;
+		delete [] tmpAmplitude;
+		delete [] tmpArray;
+		delete [] dataLine;
+	} 
 	
-		//delete [] tmpLine;
-		//delete [] tmpAmplitude;
-		//delete [] tmpArray;
-		//delete [] dataLine;
+	void lineADC::prepareDirty_IonogramBuffer(void)
+	{
+		// Усечение данных до размера 8 бит.
+		for(size_t i = 0; i < getSavedSize(); i++) 
+			_buf_ionogram[i] = static_cast<unsigned char>(static_cast<unsigned short>(_abs.at(i)) >> 6);
+	}
+
+	template<typename T>
+	double calculateZeroShift(const std::vector<T>& vec)
+	{
+		short _out;
+		int n = vec.size();
+
+		sort(vec.begin(), vec.end());
+		_out = (vec.at(n/2),vec.at(n/2-1))/2.;
 
 		return _out;
-	} 
+	}
 
 } // namespace parus

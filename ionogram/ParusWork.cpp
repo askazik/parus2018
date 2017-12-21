@@ -430,21 +430,6 @@ namespace parus {
 			throw std::runtime_error("Ошибка записи заголовка файла данных.");    
 	}
 
-	void parusWork::saveDirtyLine(void)
-	{
-		// Writing data from buffer into file (unsigned long = unsigned int)
-		BOOL	bErrorFlag = FALSE;
-		DWORD	dwBytesWritten = 0;	
-		bErrorFlag = WriteFile( 
-			_hFile,				// open file handle
-			_sum_abs,			// start of data to write
-			_height_count * sizeof(unsigned short),// number of bytes to write
-			&dwBytesWritten,	// number of bytes that were written
-			NULL);				// no overlapped structure
-		if (!bErrorFlag) 
-			throw std::runtime_error("Не могу сохранить блок данных в файл.");
-	}
-
 	void parusWork::saveFullData(void)
 	{
 		// В буффере АЦП сохранены два сырых 16-битных чередующихся канала на одной частоте (count - количество 32-разрядных слов).
@@ -541,101 +526,23 @@ namespace parus {
 	// conf - кофигурация зондирования
 	// numModule - номер модуля зондирования
 	// curFrq - частота зондирования, кГц
-	void parusWork::saveLine(unsigned short curFrq)
+	void parusWork::saveLine(unsigned char* buf, const size_t byte_counts, const unsigned int curFrq)
 	{
-		// Неизменяемые данные по текущей частоте
-		FrequencyData tmpFrequencyData;
-		tmpFrequencyData.gain_control = static_cast<unsigned short>(_g * 6);			// !< Значение ослабления входного аттенюатора дБ.
-		tmpFrequencyData.pulse_time = static_cast<unsigned short>(floor(1000./_fsync));	//!< Время зондирования на одной частоте, [мс].
-		tmpFrequencyData.pulse_length = static_cast<unsigned char>(_pulse_duration);	//!< Длительность зондирующего импульса, [мкc].
-		tmpFrequencyData.band = static_cast<unsigned char>(floor(1000000./_pulse_duration)); //!< Полоса сигнала, [кГц].
-		tmpFrequencyData.type = 0;														//!< Вид модуляции (0 - гладкий импульс, 1 - ФКМ).
-
-		// Выделим буфер под упакованную строку. Считаем, что упакованная строка не больше исходной.
-		unsigned n = _height_count;
-		unsigned char *tmpArray = new unsigned char [n];
-		unsigned char *tmpLine = new unsigned char [n];
-		unsigned char *tmpAmplitude = new unsigned char [n];
-    
-		unsigned j;
-		unsigned char *dataLine = new unsigned char [n];
-
-		// Усечение данных до размера 8 бит.
-		for(unsigned i = 0; i < n; i++) 
-			dataLine[i] = static_cast<unsigned char>(_sum_abs[i] >> 6);
-
-		unsigned char thereshold;
-		SignalResponse tmpSignalResponse;
-		unsigned char countOutliers;
-		unsigned short countFrq = 0; // количество байт в упакованном частотном массиве
-
-		// Определим уровень наличия выбросов.
-		thereshold = getThereshold(dataLine, n);            
-		tmpFrequencyData.frequency = curFrq;
-		tmpFrequencyData.threshold_o = thereshold;
-		tmpFrequencyData.threshold_x = 0;
-		tmpFrequencyData.count_o = 0; // может изменяться
-		tmpFrequencyData.count_x = 0; // Антенна у нас одна о- и х- компоненты объединены.
-
-		unsigned short countLine = 0; // количество байт в упакованной строке
-		countOutliers = 0; // счетчик количества выбросов в текущей строке
-		j = 0;
-		while(j < n) // Находим выбросы
-		{
-			if(dataLine[j] > thereshold) // Выброс найден - обрабатываем его.
-			{
-				tmpSignalResponse.height_begin = static_cast<unsigned long>(floor(1.0 * j * _height_step));
-				tmpSignalResponse.count_samples = 1;
-				tmpAmplitude[tmpSignalResponse.count_samples-1] = dataLine[j];
-				j++; // переход к следующему элементу
-				while(dataLine[j] > thereshold && j < n)
-				{
-					tmpSignalResponse.count_samples++;
-					tmpAmplitude[tmpSignalResponse.count_samples-1] = dataLine[j];
-					j++; // переход к следующему элементу
-				}
-				countOutliers++; // прирастим количество выбросов в строке
-
-				// Собираем упакованные выбросы
-				// Заголовок выброса.
-				unsigned short nn = sizeof(SignalResponse);
-				memcpy(tmpLine+countLine, &tmpSignalResponse, nn);
-				countLine += nn;
-				// Данные выброса.
-				nn = tmpSignalResponse.count_samples*sizeof(unsigned char);
-				memcpy(tmpLine+countLine, tmpAmplitude, nn);
-				countLine += nn;
-			}
-			else
-				j++; // тупо двигаемся дальше
-		}
-
-		// Данные для текущей частоты помещаем в буфер.
-		// Заголовки частот пишутся всегда, даже если выбросы отсутствуют.
-		tmpFrequencyData.count_o = countOutliers;
-		// Заголовок частоты.
-		unsigned nFrequencyData = sizeof(FrequencyData);
-		memcpy(tmpArray, &tmpFrequencyData, nFrequencyData);
-		// сохраняем ранее сформированную цепочку выбросов
-		if(countLine)
-			memcpy(tmpArray+nFrequencyData, tmpLine, countLine);
-
 		// Writing data from buffers into file (unsigned long = unsigned int)
 		BOOL	bErrorFlag = FALSE;
 		DWORD	dwBytesWritten = 0;	
 		bErrorFlag = WriteFile( 
-			_hFile,									// open file handle
-			reinterpret_cast<char*>(tmpArray),		// start of data to write
-			countLine + nFrequencyData,				// number of bytes to write
-			&dwBytesWritten,						// number of bytes that were written
-			NULL);									// no overlapped structure
-		if (!bErrorFlag) 
-			throw std::runtime_error("Не могу сохранить строку ионограммы в файл.");
-	
-		delete [] tmpLine;
-		delete [] tmpAmplitude;
-		delete [] tmpArray;
-		delete [] dataLine;
+			_hFile,						// open file handle
+			buf,						// start of data to write
+			byte_counts,				// number of bytes to write
+			&dwBytesWritten,			// number of bytes that were written
+			NULL);						// no overlapped structure
+		if (!bErrorFlag)
+		{
+			std::stringstream ss;
+			ss << "Не могу сохранить строку ионограммы в файл. Частота = " << curFrq << "кГц." << std::endl;
+			throw std::runtime_error(ss.str());
+		}
 	} 
 
 	int parusWork::ionogram(xml_unit* conf)
@@ -696,23 +603,22 @@ namespace parus {
 			if(ionogram->getPulseCount() > 1)
 				line.average(ionogram->getPulseCount());
 			// Сохранение линии в файле.
-			CLineBuf buf;
 			switch(ionogram->getVersion())
 			{
 			case 0: // ИПГ
-				//saveLine(curFrq); // Усечение данных до char (сдвиг на 6 бит)
-				buf = line.getIPGBufer(this,curFrq);
+				line.prepareIPG_IonogramBuffer(ionogram,curFrq);
 				break;
-			case 1: // без потерь
-				saveDirtyLine();
+			case 1: // без упаковки данных (as is) и информации об усилении
+				line.prepareDirty_IonogramBuffer();
 				break;
 			case 2: // для калибровки
-				saveFullData();
+				// saveFullData();
 				break;
 			case 3: // CDF
 
 				break;
 			}
+			saveLine(line.returnIonogramBuffer(), line.getSavedSize(), curFrq); // Сохранение линии в файл.
 			curFrq += fstep; // следующая частота зондирования
 		}
 

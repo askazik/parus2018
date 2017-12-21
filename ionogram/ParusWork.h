@@ -32,7 +32,6 @@
 #include "m14x3mDf.h"
 
 namespace parus {
-
 	// Класс работы с аппаратурой Паруса.
 	class parusWork {
 
@@ -65,6 +64,7 @@ namespace parus {
 		HANDLE initCOM2(void);
 		void initLPT1(void);
 
+		void saveLine(unsigned char* buf, const size_t byte_counts, const unsigned int curFrq); // сохранение линии в файле
 		void closeOutputFile(void);
 
 		// Работа с файлом журнала
@@ -102,16 +102,15 @@ namespace parus {
 
 		// Работа с ионограммами
 		void openIonogramFile(xml_ionogram* conf);
-		void saveLine(unsigned short curFrq); // Усечение данных до char (сдвиг на 6 бит) и сохранение линии в файле.
-		void saveDirtyLine(void);
 
 		// Работа с файлами выходных данных
 		void openDataFile(xml_amplitudes* conf);
-		void saveFullData(void);
-		void saveDataWithGain(void);
 
 		// Работа с файлом журнала
 		std::vector<std::string> getLog(void){ return _log;}
+
+		void saveFullData(void);
+		void saveDataWithGain(void);
 	};
 
 	void mySetPriorityClass(void);
