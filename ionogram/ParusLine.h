@@ -112,6 +112,8 @@ namespace parus {
 		template<typename T>
 		double calculateZeroShift(const std::vector<T>& vec);
 
+		double calculateAbsThereshold(unsigned char* vec);
+
 	public:
 		lineADC();
 		lineADC(BYTE *buf);

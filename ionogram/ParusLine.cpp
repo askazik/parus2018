@@ -77,53 +77,6 @@ namespace parus {
 		zero_shift_im /= pulse_count;
 	}
 
-	//// Возвращает статистику строки данных (short/double).
-	//template<typename T>
-	//Statistics calculateStatistics(const std::vector<T>& vec)
-	//{
-	//	Statistics _out;
-	//	int n = vec.size();
-
-	//	std::vector<T> vec_half;
-	//	vec_half.insert(vec_half.begin(),vec.begin()+(n/2-1),vec.end()); // верхняя половина вектора
-
-	//	// 1. Упорядочим данные по возрастанию.
-	//	sort(vec.begin(), vec.end());
-	//	sort(vec_half.begin(), vec_half.end());
-	//	// 2. Квартили (n - чётное, степень двойки!!!)
-	//	_out.Q1 = (vec.at(n/4)+vec.at(n/4-1))/2.;
-	//	_out.median = (vec.at(n/2),vec.at(n/2-1))/2.;
-	//	_out.median_top_half = (vec_half.at(n/2),vec_half.at(n/2-1))/2.;
-	//	_out.Q3 = (vec.at(3*n/4),vec.at(3*n/4-1))/2.;
-	//	// 3. Межквартильный диапазон
-	//	_out.dQ = _out.Q3 - _out.Q1;
-	//	// 4. Верхняя граница выбросов.
-	//	_out.thereshold = _out.Q3 + 3 * _out.dQ;
-
-	//	// среднее значение
-	//	_out.mean = std::accumulate(vec.begin(), vec.end(), 0) / n;
-
-	//	// стандартное отклонение от среднего значения
-	//	std::vector<double> diff(n);
-	//	std::transform(vec.begin(), vec.end(), diff.begin(),
- //              std::bind2nd(std::minus<double>(), _out.mean));
-	//	double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-	//	_out.std_mean = std::sqrt(sq_sum /(n-1));
-
-	//	// стандартное отклонение от медианы
-	//	std::vector<double> diff(n);
-	//	std::transform(vec.begin(), vec.end(), diff.begin(),
- //              std::bind2nd(std::minus<double>(), _out.median));
-	//	double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-	//	_out.std_median = std::sqrt(sq_sum /(n-1));
-
-	//	// минимальное и максимальное значения
-	//	_out.min = vec.front();
-	//	_out.max = vec.back();
-
-	//	return _out;
-	//}
-
 	// Усечение данных до char (сдвиг на 6 бит) и сохранение линии в файле.
 	// Упаковка строки ионограммы по алгоритму ИЗМИРАН-ИПГ.
 	void lineADC::prepareIPG_IonogramBuffer(xml_ionogram* ionogram, const unsigned short curFrq)
@@ -154,8 +107,7 @@ namespace parus {
 		unsigned short countFrq = 0; // количество байт в упакованном частотном массиве
 
 		// Определим уровень наличия выбросов.
-		Statistics tmp = calculateStatistics(_abs);
-		unsigned char thereshold = static_cast<unsigned char>(tmp.thereshold);           
+		unsigned char thereshold = static_cast<unsigned char>(calculateAbsThereshold(dataLine));           
 		tmpFrequencyData.frequency = curFrq;
 		tmpFrequencyData.threshold_o = thereshold;
 		tmpFrequencyData.threshold_x = 0;
@@ -223,16 +175,98 @@ namespace parus {
 			_buf_ionogram[i] = static_cast<unsigned char>(static_cast<unsigned short>(_abs.at(i)) >> 6);
 	}
 
+	/// <summary>
+	/// Вычисляет смещение нуля по верхней половине вектора измерений.
+	/// </summary>
+	/// <param name="vec">Входной вектор.</param>
+	/// <returns>Значение смещения нуля.</returns>
 	template<typename T>
-	double calculateZeroShift(const std::vector<T>& vec)
+	double lineADC::calculateZeroShift(const std::vector<T>& vec)
 	{
-		short _out;
+		double _out;
 		int n = vec.size();
+		std::vector<T> vec_half;
+		vec_half.insert(vec_half.begin(),vec.begin()+(n/2-1),vec.end()); // верхняя половина вектора
 
-		sort(vec.begin(), vec.end());
-		_out = (vec.at(n/2),vec.at(n/2-1))/2.;
+		// Сортируем по возрастанию и определяем медиану.
+		sort(vec_half.begin(), vec_half.end());
+		_out = (vec_half.at(n/2),vec_half.at(n/2-1))/2.;
 
 		return _out;
 	}
 
+	/// <summary>
+	/// Вычисляет пороговый уровень, выше которого, предположительно, регистрируется сигнал отражения.
+	/// </summary>
+	/// <param name="vec">Входной вектор абсолютных значений амплитуд.</param>
+	/// <returns>Значение порога.</returns>
+	double lineADC::calculateAbsThereshold(unsigned char* _in)
+	{
+		double thereshold;
+		unsigned n = __COUNT_MAX__;
+		std::vector<double> vec;
+
+		// 0. Заполним рабочий вектор.
+		for(size_t i = 0; i < n; i++) 
+			vec.at(i) = _in[i];
+		// 1. Упорядочим данные по возрастанию.
+		sort(vec.begin(), vec.end());
+		// 2. Квартили (n - чётное, степень двойки!!!)
+		double Q1 = (vec.at(n/4)+vec.at(n/4-1))/2.;
+		double Q3 = (vec.at(3*n/4),vec.at(3*n/4-1))/2.;
+		// 3. Межквартильный диапазон
+		double dQ = Q3 - Q1;
+		// 4. Верхняя граница выбросов.
+		thereshold = Q3 + 3 * dQ;
+
+		return thereshold;
+	}
+
 } // namespace parus
+
+	//// Возвращает статистику строки данных (short/double).
+	//template<typename T>
+	//Statistics calculateStatistics(const std::vector<T>& vec)
+	//{
+	//	Statistics _out;
+	//	int n = vec.size();
+
+	//	std::vector<T> vec_half;
+	//	vec_half.insert(vec_half.begin(),vec.begin()+(n/2-1),vec.end()); // верхняя половина вектора
+
+	//	// 1. Упорядочим данные по возрастанию.
+	//	sort(vec.begin(), vec.end());
+	//	sort(vec_half.begin(), vec_half.end());
+	//	// 2. Квартили (n - чётное, степень двойки!!!)
+	//	_out.Q1 = (vec.at(n/4)+vec.at(n/4-1))/2.;
+	//	_out.median = (vec.at(n/2),vec.at(n/2-1))/2.;
+	//	_out.median_top_half = (vec_half.at(n/2),vec_half.at(n/2-1))/2.;
+	//	_out.Q3 = (vec.at(3*n/4),vec.at(3*n/4-1))/2.;
+	//	// 3. Межквартильный диапазон
+	//	_out.dQ = _out.Q3 - _out.Q1;
+	//	// 4. Верхняя граница выбросов.
+	//	_out.thereshold = _out.Q3 + 3 * _out.dQ;
+
+	//	// среднее значение
+	//	_out.mean = std::accumulate(vec.begin(), vec.end(), 0) / n;
+
+	//	// стандартное отклонение от среднего значения
+	//	std::vector<double> diff(n);
+	//	std::transform(vec.begin(), vec.end(), diff.begin(),
+ //              std::bind2nd(std::minus<double>(), _out.mean));
+	//	double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+	//	_out.std_mean = std::sqrt(sq_sum /(n-1));
+
+	//	// стандартное отклонение от медианы
+	//	std::vector<double> diff(n);
+	//	std::transform(vec.begin(), vec.end(), diff.begin(),
+ //              std::bind2nd(std::minus<double>(), _out.median));
+	//	double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+	//	_out.std_median = std::sqrt(sq_sum /(n-1));
+
+	//	// минимальное и максимальное значения
+	//	_out.min = vec.front();
+	//	_out.max = vec.back();
+
+	//	return _out;
+	//}

@@ -553,6 +553,8 @@ namespace parus {
 		unsigned short curFrq; // текуща€ частота зондировани€, к√ц
 		int counter; // число импульсов от генератора
 		bool keyReduceGain = false; // флаг уменьшени€ мощности зондировани€ при ограничении сигнала
+		double zero_re = 0;
+		double zero_im = 0;
 
 		curFrq = ionogram->getModule(0)._map.at("fbeg");
 		unsigned fstep = ionogram->getModule(0)._map.at("fstep");
@@ -619,8 +621,14 @@ namespace parus {
 				break;
 			}
 			saveLine(line.returnIonogramBuffer(), line.getSavedSize(), curFrq); // —охранение линии в файл.
+			zero_re += line.getShiftRe(); // прибавим среднее значение по всем пульсам
+			zero_im += line.getShiftIm(); // прибавим среднее значение по всем пульсам
+
 			curFrq += fstep; // следующа€ частота зондировани€
 		}
+		// —реднее смещение нул€ по всем частотам.
+		zero_re /= ionogram->getFrequenciesCount();
+		zero_im /= ionogram->getFrequenciesCount();
 
 		// —охраним информацию о наступлении ограничени€ сигнала
 		std::vector<std::string> log = getLog();
