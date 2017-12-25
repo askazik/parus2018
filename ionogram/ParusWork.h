@@ -64,8 +64,10 @@ namespace parus {
 		HANDLE initCOM2(void);
 		void initLPT1(void);
 
-		void saveLine(unsigned char* buf, const size_t byte_counts, const unsigned int curFrq); // сохранение линии в файле
-		void closeOutputFile(void);
+		void saveLine(char* buf, const size_t byte_counts, const unsigned int curFrq); // сохранение линии в файле
+		
+		void saveFullData(void);
+		void saveDataWithGain(void);
 
 		// Работа с файлом журнала
 		std::vector<std::string> _log;
@@ -94,23 +96,24 @@ namespace parus {
 		void READ_GETIOSTATE(void);
 		int READ_ISCOMPLETE(unsigned long msTimeout);
 
+		int GETGAIN(M214x3M_GAINPARS _GAIN); // Получить коэффициент усиления
+		int GETINPUTOSV(M214x3M_ZEROSHIFTPARS _ZEROSHIFT); // Получить смещение нуля
+		int SETINPUTOSV(M214x3M_ZEROSHIFTPARS _ZEROSHIFT); // Установить смещение нуля
+		int GETINP(M214x3M_INPPARS _INPPARS); // Получить включенные входы и их усиление
+
 		void setup(xml_unit* conf);
 		int ionogram(xml_unit* conf);
-		int amplitudes(xml_unit* conf);
+		int amplitudes(xml_unit* conf, unsigned dt);
 		void adjustSounding(unsigned int curFrq);
+		void adjustZeroShift(std::vector<double> zero_shift);
 		void startGenerator(unsigned int nPulses);
-
-		// Работа с ионограммами
-		void openIonogramFile(xml_ionogram* conf);
-
-		// Работа с файлами выходных данных
-		void openDataFile(xml_amplitudes* conf);
+		
+		void openIonogramFile(xml_ionogram* conf); // Работа с ионограммами
+		void openDataFile(xml_amplitudes* conf); // Работа с файлами выходных данных
+		void closeOutputFile(void);
 
 		// Работа с файлом журнала
 		std::vector<std::string> getLog(void){ return _log;}
-
-		void saveFullData(void);
-		void saveDataWithGain(void);
 	};
 
 	void mySetPriorityClass(void);

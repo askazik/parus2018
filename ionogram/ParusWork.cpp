@@ -179,6 +179,91 @@ namespace parus {
 		return DAQ_ioctl(_DAQ, DAQ_ioctlREAD_ISCOMPLETE, &msTimeout);
 	}
 
+	////	2.2.84	Получить коэффициент усиления (1002)
+	////Позволяет получить текущий коэффициент усиления для произвольного входа.
+	////Код управляющей функции:
+	////M214x3M_ioctlGETGAIN = 1002
+	////Тип аргумента:
+	////указатель на структуру вида:
+	////struct {
+	////	float Value;		// Усиление
+	////	int Input;		// Номер входа (0-15)
+	////} M214x3M_GAINPARS;
+	//	M214x3M_GAINPARS _GAIN;
+	//	for(int kk = 0; kk<16; kk++){
+	//		_GAIN.Input = kk;
+	//		DAQ_ioctl(_DAQ, M214x3M_ioctlGETGAIN, &_GAIN);
+	//	}
+	int parusWork::GETGAIN(M214x3M_GAINPARS _GAIN){
+		_RetStatus = DAQ_ioctl(_DAQ, M214x3M_ioctlGETGAIN, &_GAIN);
+		if(_RetStatus != ERROR_SUCCESS)
+			throw(DAQ_GetErrorMessage(_DAQ, _RetStatus));
+
+		return _RetStatus;
+	}
+
+	////	2.2.86	Получить смещение нуля (1022)
+	////Позволяет получить текущее смещение нуля для произвольного канала АЦП (половины входов).
+	////Код управляющей функции:
+	////M214x3M_ioctlGETINPUTOSV = 1022
+	////Тип аргумента:
+	////указатель на структуру вида:
+	////struct {
+	////	float Value;			// Смещение нуля
+	////	int Chan;			// Номер канала (0 или 1)
+	////} M214x3M_ZEROSHIFTPARS;
+	//	M214x3M_ZEROSHIFTPARS _ZEROSHIFT;
+	//	for(int kk = 0; kk<2; kk++){
+	//		_ZEROSHIFT.Chan = kk;
+	//		DAQ_ioctl(_DAQ, M214x3M_ioctlGETINPUTOSV, &_ZEROSHIFT);
+	//	}
+	int parusWork::GETINPUTOSV(M214x3M_ZEROSHIFTPARS _ZEROSHIFT)
+	{
+		_RetStatus = DAQ_ioctl(_DAQ, M214x3M_ioctlGETINPUTOSV, &_ZEROSHIFT);
+		if(_RetStatus != ERROR_SUCCESS)
+			throw(DAQ_GetErrorMessage(_DAQ, _RetStatus));
+
+		return _RetStatus;
+	}
+
+	// Устанавливает смещение нуля (в диапазоне +/- 2.5 B) для произвольного канала АЦП (половины входов). 
+	// Если Chan=0, то для входов 0-7. 
+	// Если Chan=1, то для входов 8-15.
+	int parusWork::SETINPUTOSV(M214x3M_ZEROSHIFTPARS _ZEROSHIFT)
+	{					
+		_RetStatus = DAQ_ioctl(_DAQ, M214x3M_ioctlSETINPUTOSV, &_ZEROSHIFT); // Установим смещение нуля
+		if(_RetStatus != ERROR_SUCCESS)
+			throw(DAQ_GetErrorMessage(_DAQ, _RetStatus));
+
+		return _RetStatus;
+	}
+	////	2.2.88	Получить включенные входы и их усиление (1024)
+	////Позволяет узнать номера опрашиваемых входов и их коэффициенты усиления.
+	////Код управляющей функции:
+	////M214x3M_ioctlGETINP = 1024,
+	////Тип аргумента:
+	////указатель на структуру вида:
+	////struct{
+	////  int	Counter;	// Число включенных входов
+	////	struct {	
+	////  float Value;		// Усиление
+	////  int  Input;		// Номер входа (0-15)
+	////} M214x3M_GAINPARS Gain[16]; 	// Номера и усиления включенных входов
+	////} M214x3M_INPPARS;
+	//	M214x3M_INPPARS _INPPARS;
+	//	for(int kk = 0; kk<16; kk++){
+	//		_INPPARS.Gain->Input = kk;
+	//		DAQ_ioctl(_DAQ, M214x3M_ioctlGETINP, &_INPPARS);
+	//	}
+	int parusWork::GETINP(M214x3M_INPPARS _INPPARS)
+	{
+		_RetStatus = DAQ_ioctl(_DAQ, M214x3M_ioctlGETINP, &_INPPARS);
+		if(_RetStatus != ERROR_SUCCESS)
+			throw(DAQ_GetErrorMessage(_DAQ, _RetStatus));
+
+		return _RetStatus;
+	}
+
 	// Программируем синтезатор приемника
 	void parusWork::adjustSounding(unsigned int curFrq){
 	// curFrq -  частота, Гц
@@ -526,7 +611,7 @@ namespace parus {
 	// conf - кофигурация зондирования
 	// numModule - номер модуля зондирования
 	// curFrq - частота зондирования, кГц
-	void parusWork::saveLine(unsigned char* buf, const size_t byte_counts, const unsigned int curFrq)
+	void parusWork::saveLine(char* buf, const size_t byte_counts, const unsigned int curFrq)
 	{
 		// Writing data from buffers into file (unsigned long = unsigned int)
 		BOOL	bErrorFlag = FALSE;
@@ -548,11 +633,9 @@ namespace parus {
 	int parusWork::ionogram(xml_unit* conf)
 	{
 		xml_ionogram* ionogram = (xml_ionogram*)conf;
-		int RetStatus = 0;
 		DWORD msTimeout = 25;
 		unsigned short curFrq; // текущая частота зондирования, кГц
 		int counter; // число импульсов от генератора
-		bool keyReduceGain = false; // флаг уменьшения мощности зондирования при ограничении сигнала
 		double zero_re = 0;
 		double zero_im = 0;
 
@@ -563,15 +646,7 @@ namespace parus {
 
 		while(counter) // обрабатываем импульсы генератора
 		{
-			//if(keyReduceGain)
-			//{
-			//	_g--; // ослабляем регистрируемую амплитуду вдвое (6 дБ)
-			//	keyReduceGain = false;
-			//}
 			adjustSounding(curFrq);
-
-			// Инициализация массива суммирования нулями.
-			//cleanLineAccumulator();
 			lineADC line;
 			for (unsigned k = 0; k < ionogram->getPulseCount(); k++) // счётчик циклов суммирования на одной частоте
 			{
@@ -595,9 +670,9 @@ namespace parus {
 					ss << curFrq << '\t' << e.getHeightNumber() * ionogram->getHeightStep()  << '\t' 
 						<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
 					_log.push_back(ss.str());
-					// 2. Изменение усиления сигнала (выполняется для последующей частоты зондирования)
-					// keyReduceGain = true;
-					// std::cerr << e;
+					// 2. Уменьшение усиления сигнала (выполняется для последующей настройки <adjustSounding> частоты зондирования)
+					_g--; // уменьшаем усиление на 6 дБ (вдвое по амплитуде)
+					adjustSounding(curFrq);
 				}
 				counter--; // приступаем к обработке следующего импульса
 			}
@@ -626,9 +701,21 @@ namespace parus {
 
 			curFrq += fstep; // следующая частота зондирования
 		}
-		// Среднее смещение нуля по всем частотам.
+
+		// Среднее смещение нуля по всем частотам и импульсам на одной частоте.
 		zero_re /= ionogram->getFrequenciesCount();
 		zero_im /= ionogram->getFrequenciesCount();
+		
+		// Изменение смещения нуля для АЦП.
+		std::vector<double> zero_shift;
+		zero_shift.push_back(zero_re);
+		zero_shift.push_back(zero_im);
+		adjustZeroShift(zero_shift);
+		
+		// Запись в журнал информации о смещении нуля
+		std::stringstream ss;
+		ss << "Смещение нуля: " << zero_re << " (Re), "	<< zero_im << " (Im).";
+		_log.push_back(ss.str());
 
 		// Сохраним информацию о наступлении ограничения сигнала
 		std::vector<std::string> log = getLog();
@@ -636,18 +723,109 @@ namespace parus {
 		std::ostream_iterator<std::string> output_iterator(output_file, "\n");
 		std::copy(log.begin(), log.end(), output_iterator);
 
-		return RetStatus;
+		return _RetStatus;
 	}
 
-	int parusWork::amplitudes(xml_unit* conf)
+	/// <summary>
+	/// Настройка смещения нуля для обоих каналов.
+	/// </summary>
+	/// <param name="zero_shift">Смещение нуля нулевого и первого каналов, занесённые в вектор std::vector<double>.</param>
+	void parusWork::adjustZeroShift(std::vector<double> zero_shift)
+	{
+		M214x3M_ZEROSHIFTPARS _ZEROSHIFT;
+
+		for(size_t kk = 0; kk < 2; kk++)
+		{
+			_ZEROSHIFT.Chan = kk;
+			_ZEROSHIFT.Value = 0;
+			GETINPUTOSV(_ZEROSHIFT); // Получим смещение нуля
+
+			// Изменение при несовпадении
+			if(_ZEROSHIFT.Value != zero_shift.at(kk))
+			{
+				// Для коэффициента усиления АЦП = 1, при шкале +/- 2.5 В, шаг квантования примерно 0.305 мВ (2.5 / 8191 Вольт).
+				float value = static_cast<float>(zero_shift.at(kk) * 2.5 / 8191); // 13 бит по абсолютному значению
+
+				_ZEROSHIFT.Value = -value; // смещаем в обратном направлении
+				SETINPUTOSV(_ZEROSHIFT);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Измерение амплитуд.
+	/// </summary>
+	/// <param name="conf">Конфигурация измерения.</param>
+	/// <param name="dt">Время измерения в секундах.</param>
+	/// <returns></returns>
+	int parusWork::amplitudes(xml_unit* conf, unsigned dt)
 	{
 		xml_amplitudes* amplitudes = (xml_amplitudes*)conf;
-		int RetStatus = 0;
 		DWORD msTimeout = 25;
-		unsigned short curFrq; // текущая частота зондирования, кГц
+		unsigned short curFrq, numFrq = 0; // номер текущей частоты зондирования
 		int counter; // число импульсов от генератора
 
-		return RetStatus;
+		counter = dt * amplitudes->getPulseFrq(); // требуемое число импульсов от генератора
+		startGenerator(counter+1); // Запуск генератора импульсов.
+
+		while(counter) // обрабатываем импульсы генератора
+		{
+			curFrq = amplitudes->getAmplitudesFrq(numFrq);
+			adjustSounding(curFrq);
+
+			lineADC line;
+
+			ASYNC_TRANSFER(); // запустим АЦП
+				
+			// Цикл проверки до появления результатов в буфере.
+			// READ_BUFISCOMPLETE - сбоит на частоте 47 Гц
+			while(READ_ISCOMPLETE(msTimeout) == NULL);
+
+			// Остановим АЦП
+			READ_ABORTIO();					
+
+			try
+			{
+				line.accumulate(getBuffer());
+			}
+			catch(CADCOverflowException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
+			{
+				// 1. Запись в журнал
+				std::stringstream ss;
+				ss << curFrq << '\t' << e.getHeightNumber() * amplitudes->getHeightStep()  << '\t' 
+					<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
+				_log.push_back(ss.str());
+				// 2. Уменьшение усиления сигнала (выполняется для последующей настройки <adjustSounding> частоты зондирования)
+				//_g--; // уменьшаем усиление на 6 дБ (вдвое по амплитуде)
+				//adjustSounding(curFrq);
+			}
+
+			// Сохранение линии в файле.
+			switch(amplitudes->getVersion())
+			{
+				case 0: // ИПГ
+					//work->saveDirtyLine();
+					break;
+				case 1: // без упаковки данных (as is) и информации об усилении
+					line.prepareDirty_AmplitudesBuffer();
+					break;
+				case 2: // упаковка данных - существенное уменьшение размера файла
+					//work->saveTheresholdLine();
+					break;
+				case 3: // обработка возможного ограничения сигнала для каждой частоты зондирования
+					//work->saveDataWithGain();
+					break;
+			}
+			saveLine(line.returnIonogramBuffer(), line.getSavedSize(), curFrq); // Сохранение линии в файл.
+
+			counter--; // приступаем к обработке следующего импульса
+			
+			numFrq++; // смена частоты зондирования
+			if(numFrq == amplitudes->getModulesCount()) 
+				numFrq = 0;
+		}
+
+		return _RetStatus;
 	}
 
 	void mySetPriorityClass(void)
@@ -679,54 +857,3 @@ namespace parus {
 		}
 	}
 } // namespace parus
-
-	////	2.2.84	Получить коэффициент усиления (1002)
-	////Позволяет получить текущий коэффициент усиления для произвольного входа.
-	////Код управляющей функции:
-	////M214x3M_ioctlGETGAIN = 1002
-	////Тип аргумента:
-	////указатель на структуру вида:
-	////struct {
-	////	float Value;		// Усиление
-	////	int Input;		// Номер входа (0-15)
-	////} M214x3M_GAINPARS;
-	//	M214x3M_GAINPARS _GAIN;
-	//	for(int kk = 0; kk<16; kk++){
-	//		_GAIN.Input = kk;
-	//		DAQ_ioctl(_DAQ, M214x3M_ioctlGETGAIN, &_GAIN);
-	//	}
-
-	////	2.2.86	Получить смещение нуля (1022)
-	////Позволяет получить текущее смещение нуля для произвольного канала АЦП (половины входов).
-	////Код управляющей функции:
-	////M214x3M_ioctlGETINPUTOSV = 1022
-	////Тип аргумента:
-	////указатель на структуру вида:
-	////struct {
-	////	float Value;			// Смещение нуля
-	////	int Chan;			// Номер канала (0 или 1)
-	////} M214x3M_ZEROSHIFTPARS;
-	//	M214x3M_ZEROSHIFTPARS _ZEROSHIFT;
-	//	for(int kk = 0; kk<2; kk++){
-	//		_ZEROSHIFT.Chan = kk;
-	//		DAQ_ioctl(_DAQ, M214x3M_ioctlGETINPUTOSV, &_ZEROSHIFT);
-	//	}
-
-	////	2.2.88	Получить включенные входы и их усиление (1024)
-	////Позволяет узнать номера опрашиваемых входов и их коэффициенты усиления.
-	////Код управляющей функции:
-	////M214x3M_ioctlGETINP = 1024,
-	////Тип аргумента:
-	////указатель на структуру вида:
-	////struct{
-	////  int	Counter;	// Число включенных входов
-	////	struct {	
-	////  float Value;		// Усиление
-	////  int  Input;		// Номер входа (0-15)
-	////} M214x3M_GAINPARS Gain[16]; 	// Номера и усиления включенных входов
-	////} M214x3M_INPPARS;
-	//	M214x3M_INPPARS _INPPARS;
-	//	for(int kk = 0; kk<16; kk++){
-	//		_INPPARS.Gain->Input = kk;
-	//		DAQ_ioctl(_DAQ, M214x3M_ioctlGETINP, &_INPPARS);
-	//	}

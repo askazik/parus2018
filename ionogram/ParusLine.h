@@ -104,6 +104,7 @@ namespace parus {
 		std::vector<double> _abs;
 		unsigned long *_buf; // указатель на копию аппаратного буфера
 		unsigned char *_buf_ionogram; // указатель на буфер строки ионограммы
+		unsigned long *_buf_amplitudes; // указатель на буфер строки амплитуд
 
 		size_t _real_buf_size; // размер буфера для сохранения результатов (уменьшаем размер выходного файла)
 		double zero_shift_re;
@@ -126,7 +127,8 @@ namespace parus {
 		unsigned long* getBufer(void){return _buf;}
 		
 		void prepareIPG_IonogramBuffer(xml_ionogram* ionogram, const unsigned short curFrq);
-		void prepareDirty_IonogramBuffer(void);
+		void prepareDirty_IonogramBuffer();
+		void prepareDirty_AmplitudesBuffer();
 
 		//template<typename T>
 		//Statistics calculateStatistics(const std::vector<T>& vec);
@@ -134,7 +136,8 @@ namespace parus {
 		// get
 		short getShiftRe(){return static_cast<short>(zero_shift_re);}
 		short getShiftIm(){return static_cast<short>(zero_shift_im);}
-		unsigned char* returnIonogramBuffer(){return _buf_ionogram;}
+		char* returnIonogramBuffer(){return reinterpret_cast<char*>(_buf_ionogram);}
+		char* returnAmplitudesBuffer(){return reinterpret_cast<char*>(_buf_amplitudes);}
 	};
 
 } // namespace parus

@@ -20,6 +20,7 @@ int main(void)
 	ionHeaderNew2 _header = ionogram.getIonogramHeader();
 
 	std::cout << "Используем конфигурационный файл: <" << project.getFileName() << ">." << "\n\n";
+	unsigned dt = project.getModule(1)._map.at("dt");
 
 	std::cout << "Параметры ионограммы: " << std::endl;
 	std::cout << "Частоты: " << _header.freq_min << " кГц - " << _header.freq_max 
@@ -31,6 +32,7 @@ int main(void)
 				<< " дБ, аттенюатор = " << amplitudes.getAttenuation() << " выкл(0)/вкл(1)." << std::endl;
 	for(size_t i = 0; i < amplitudes.getModulesCount(); i++)
 		std::cout << amplitudes.getAmplitudesFrq(i) << " кГц" << std::endl;
+	std::cout << "Время измерения амплитуд: " << dt << " с.\n";
 
     // ===========================================================================================
     // 2. Конфигурирование и исполнение сеанса.
@@ -39,7 +41,7 @@ int main(void)
 	try	
 	{
 		parusWork *work = new parusWork(); // Подготовка аппаратуры к зондированию.
-		Sleep(500); // Задержка для корректной инициализации.	
+		Sleep(100); // Задержка для корректной инициализации.	
 
 		// Перебор по элементам проекта.
 		for(size_t i=0; i < project.getModulesCount(); i++)
@@ -50,10 +52,14 @@ int main(void)
 			case MEASUREMENT: // пропускаем т.к. отсутствует реальное измерение
 				break;
 			case IONOGRAM:
+				work->openIonogramFile(&ionogram);
 				RetStatus = work->ionogram(&ionogram);
+				work->closeOutputFile();
 				break;
 			case AMPLITUDES:
-				RetStatus = work->amplitudes(&amplitudes);
+				work->openDataFile(&amplitudes);
+				RetStatus = work->amplitudes(&amplitudes,dt);
+				work->closeOutputFile();
 				break;
 			default:
 				std::cerr << "В конфигурационном файле встретился неизвестный блок измерений." << std::endl;

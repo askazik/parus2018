@@ -7,7 +7,7 @@ namespace parus {
 	lineADC::lineADC() :
 		_buf(nullptr),
 		_buf_ionogram(nullptr),
-		_real_buf_size(__COUNT_MAX__),
+		_real_buf_size(__COUNT_MAX__/2),
 		zero_shift_re(0),
 		zero_shift_im(0)
 	{
@@ -168,11 +168,19 @@ namespace parus {
 		delete [] dataLine;
 	} 
 	
-	void lineADC::prepareDirty_IonogramBuffer(void)
+	void lineADC::prepareDirty_IonogramBuffer()
 	{
 		// Усечение данных до размера 8 бит.
 		for(size_t i = 0; i < getSavedSize(); i++) 
 			_buf_ionogram[i] = static_cast<unsigned char>(static_cast<unsigned short>(_abs.at(i)) >> 6);
+	}
+
+	/// <summary>
+	/// Prepares the dirty amplitudes buffer. Простое копирование данных. Используется только нижняя половина отсчётов.
+	/// </summary>
+	void lineADC::prepareDirty_AmplitudesBuffer()
+	{
+		memcpy(_buf_amplitudes, _buf, sizeof(unsigned long) * getSavedSize());
 	}
 
 	/// <summary>
