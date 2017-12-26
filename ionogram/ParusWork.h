@@ -65,6 +65,7 @@ namespace parus {
 		void initLPT1(void);
 
 		void saveLine(char* buf, const size_t byte_counts, const unsigned int curFrq); // сохранение линии в файле
+		void saveGain(); // сохранение информации об усилении приёмника
 		
 		void saveFullData(void);
 		void saveDataWithGain(void);

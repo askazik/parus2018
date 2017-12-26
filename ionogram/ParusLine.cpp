@@ -4,10 +4,10 @@ namespace parus {
 
 	// Class lineADC
 	// Инициализация без заполнения.
-	lineADC::lineADC() :
+	lineADC::lineADC(unsigned _height_count = __COUNT_MAX__/2) :
 		_buf(nullptr),
 		_buf_ionogram(nullptr),
-		_real_buf_size(__COUNT_MAX__/2),
+		_real_buf_size(_height_count),
 		zero_shift_re(0),
 		zero_shift_im(0)
 	{

@@ -628,7 +628,33 @@ namespace parus {
 			ss << "Не могу сохранить строку ионограммы в файл. Частота = " << curFrq << "кГц." << std::endl;
 			throw std::runtime_error(ss.str());
 		}
-	} 
+	}
+
+	void parusWork::saveGain(void)
+	{
+		// Сохранение усиления приемника (unsigned char)
+		BOOL	bErrorFlag = FALSE;
+		DWORD	dwBytesWritten = 0;	
+		unsigned char cur_gain = 46; // реальное усиление приёмника
+
+		// _att - ослабление (аттенюатор) 1/0 = вкл/выкл
+		if(_att) 
+			cur_gain -= 12;
+	
+		//_g = conf.getGain()/6;	// ??? 6дБ = приращение в 4 раза по мощности
+		//if(_g > 7) _g = 7;
+		// min = +0 dB, max = +42 dB
+		cur_gain += (unsigned char)_g * 6;
+
+		bErrorFlag = WriteFile( 
+			_hFile,				// open file handle
+			&cur_gain,			// start of data to write - запись усиления приемника в дБ
+			1,					// number of bytes to write
+			&dwBytesWritten,	// number of bytes that were written
+			NULL);				// no overlapped structure
+		if (!bErrorFlag) 
+			throw std::runtime_error("Не могу сохранить значение усиления приемника в файл.");
+	}
 
 	int parusWork::ionogram(xml_unit* conf)
 	{
@@ -647,7 +673,7 @@ namespace parus {
 		while(counter) // обрабатываем импульсы генератора
 		{
 			adjustSounding(curFrq);
-			lineADC line;
+			lineADC line(ionogram->getHeightCount());
 			for (unsigned k = 0; k < ionogram->getPulseCount(); k++) // счётчик циклов суммирования на одной частоте
 			{
 				ASYNC_TRANSFER(); // запустим АЦП
@@ -764,16 +790,18 @@ namespace parus {
 		DWORD msTimeout = 25;
 		unsigned short curFrq, numFrq = 0; // номер текущей частоты зондирования
 		int counter; // число импульсов от генератора
+		std::vector<unsigned int> G(amplitudes->getModulesCount(), _g); // вектор усилений для частот зондирования
 
 		counter = dt * amplitudes->getPulseFrq(); // требуемое число импульсов от генератора
 		startGenerator(counter+1); // Запуск генератора импульсов.
 
 		while(counter) // обрабатываем импульсы генератора
 		{
-			curFrq = amplitudes->getAmplitudesFrq(numFrq);
+			curFrq = amplitudes->getAmplitudesFrq(numFrq); // заданная частота зондирования
+			_g = G.at(numFrq); // усиление для заданной частоты зондирования
 			adjustSounding(curFrq);
 
-			lineADC line;
+			lineADC line(amplitudes->getHeightCount());
 
 			ASYNC_TRANSFER(); // запустим АЦП
 				
@@ -795,9 +823,8 @@ namespace parus {
 				ss << curFrq << '\t' << e.getHeightNumber() * amplitudes->getHeightStep()  << '\t' 
 					<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
 				_log.push_back(ss.str());
-				// 2. Уменьшение усиления сигнала (выполняется для последующей настройки <adjustSounding> частоты зондирования)
-				//_g--; // уменьшаем усиление на 6 дБ (вдвое по амплитуде)
-				//adjustSounding(curFrq);
+				// 2. Уменьшение усиления сигнала (выполняется для последующей настройки частоты зондирования)
+				G.at(numFrq) = G.at(numFrq) - 1; // уменьшаем усиление на 6 дБ (вдвое по амплитуде) для следующего импульса на частоте
 			}
 
 			// Сохранение линии в файле.
@@ -816,7 +843,8 @@ namespace parus {
 					//work->saveDataWithGain();
 					break;
 			}
-			saveLine(line.returnIonogramBuffer(), line.getSavedSize(), curFrq); // Сохранение линии в файл.
+			saveLine(line.returnAmplitudesBuffer(), line.getSavedSize(), curFrq); // Сохранение линии в файл.
+			saveGain(); // сохранение в файл усиления приемника на текущей частоте
 
 			counter--; // приступаем к обработке следующего импульса
 			

@@ -116,7 +116,7 @@ namespace parus {
 		double calculateAbsThereshold(unsigned char* vec);
 
 	public:
-		lineADC();
+		lineADC(unsigned _height_count);
 		lineADC(BYTE *buf);
 		~lineADC();
 
