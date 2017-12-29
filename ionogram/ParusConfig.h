@@ -98,7 +98,7 @@ namespace parus {
 		std::vector<unit> _modules;
 
 		void findMeasurement(Measurement mes);
-		struct tm getUTC(void);
+		const struct tm getUTC(void);
 	public:
 		static const char* MeasurementNames[];
 
@@ -107,22 +107,22 @@ namespace parus {
 		const XML::XMLElement *getXMLModule(int i){return _xml_modules[i];}
 		const unit getHeader(void){return _header;}
 		const unit getModule(int i){return _modules[i];}
-		unsigned getModulesCount(void){return _xml_modules.size();}
-		Measurement getMeasurement(void){return _measurement;}
+		const unsigned getModulesCount(void){return _xml_modules.size();}
+		const Measurement getMeasurement(void){return _measurement;}
 
 		// Информация из заголовка.
-		virtual unsigned getVersion(void){return _header._map.at("version");}
-		virtual unsigned getHeightStep(void){return _header._map.at("height_step");}
+		virtual const unsigned getVersion(void){return _header._map.at("version");}
+		virtual const unsigned getHeightStep(void){return _header._map.at("height_step");}
 		virtual void setHeightStep(double value){_header._map.at("height_step") = static_cast<unsigned>(value);}
-		virtual unsigned getHeightCount(void){return _header._map.at("height_count");}
+		virtual const unsigned getHeightCount(void){return _header._map.at("height_count");}
 		virtual void setHeightCount(unsigned value){_header._map.at("height_count") = value;}
-		virtual unsigned getPulseCount(void){return _header._map.at("pulse_count");}
+		virtual const unsigned getPulseCount(void){return _header._map.at("pulse_count");}
 		virtual void setPulseCount(unsigned value){_header._map.at("pulse_count") = value;}
-		virtual unsigned getAttenuation(void){return _header._map.at("attenuation");}
-		virtual unsigned getGain(void){return _header._map.at("gain");}
-		virtual unsigned getPulseFrq(void){return _header._map.at("pulse_frq");}
-		virtual unsigned getPulseDuration(void){return _header._map.at("pulse_duration");}
-		virtual unsigned getSwitchFrequency(void){return _header._map.at("switch_frequency");}	
+		virtual const unsigned getAttenuation(void){return _header._map.at("attenuation");}
+		virtual const unsigned getGain(void){return _header._map.at("gain");}
+		virtual const unsigned getPulseFrq(void){return _header._map.at("pulse_frq");}
+		virtual const unsigned getPulseDuration(void){return _header._map.at("pulse_duration");}
+		virtual const unsigned getSwitchFrequency(void){return _header._map.at("switch_frequency");}	
 	};
 
 	// Блок планирования эксперимента
@@ -139,8 +139,8 @@ namespace parus {
 		xml_ionogram(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME) : xml_unit(IONOGRAM, fullName){}
 
 		// Формирование заголовка файла
-		ionHeaderNew2 getIonogramHeader(void);
-		virtual unsigned getFrequenciesCount(void);
+		const ionHeaderNew2 getIonogramHeader(void);
+		virtual const unsigned getFrequenciesCount(void);
 	};
 
 	// Блок амплитуд
@@ -148,10 +148,10 @@ namespace parus {
 	{
 	public:
 		xml_amplitudes(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME) : xml_unit(AMPLITUDES, fullName){}
-		unsigned getAmplitudesFrq(unsigned i){return (getModulesCount()) ? getModule(i)._map.at("frequency") : 0;}
+		const unsigned getAmplitudesFrq(unsigned i){return (getModulesCount()) ? getModule(i)._map.at("frequency") : 0;}
 
 		// Формирование заголовка файла
-		dataHeader getAmplitudesHeader(void);
+		const dataHeader getAmplitudesHeader(void);
 	};
 }; // end namespace parus
 

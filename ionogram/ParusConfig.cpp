@@ -105,7 +105,7 @@ namespace parus {
 		}
 	}
 
-	struct tm xml_unit::getUTC(void)
+	const struct tm xml_unit::getUTC(void)
 	{
 	// Obtain coordinated universal time (!!!! UTC !!!!!):
     // ==================================================================================================
@@ -126,7 +126,7 @@ namespace parus {
 	/// Формирование заголовка файла ионограмм.
 	/// </summary>
 	/// <returns>Структура ionHeaderNew2 для записи в заголовок файла.</returns>
-	ionHeaderNew2 xml_ionogram::getIonogramHeader(void)
+	const ionHeaderNew2 xml_ionogram::getIonogramHeader(void)
 	{
 		ionHeaderNew2 _out;
 		unit module0 = getModule(0);
@@ -151,14 +151,14 @@ namespace parus {
 	/// Возвращает количество частот зондирования ионограммы.
 	/// </summary>
 	/// <returns></returns>
-	unsigned xml_ionogram::getFrequenciesCount(void)
+	const unsigned xml_ionogram::getFrequenciesCount(void)
 	{
 		unit module0 = getModule(0);
 		return 1 + (module0._map.at("fend") - module0._map.at("fbeg"))/module0._map.at("fstep");
 	}
 
 	// Формирование заголовка файла амплитудных измерений
-	dataHeader xml_amplitudes::getAmplitudesHeader(void)
+	const dataHeader xml_amplitudes::getAmplitudesHeader(void)
 	{
 		struct tm newtime = getUTC();
 

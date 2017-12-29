@@ -86,15 +86,37 @@ namespace parus {
 		double min, max;
 	};
 
-	struct CLineBuf
+	// Новый класс для работы с строкой АЦП. 28.12.2017.
+	class CSounding
 	{
-		unsigned count; // число байт в массиве для записи строки
-		unsigned char *arr; // указатель на массив подготовленных для записи в файл данных
-		int shift_0; // смещение (скорее всего - медиана) от 0 первого канала (Re)
-		int shift_1; // смещение (скорее всего - медиана) от 0 второго канала (Im)
+		// число точек (unsigned long) данных в строке АЦП (устанавливаем максимально
+		// возможную для более точного расчёта статистик)
+		unsigned count_;
+		// количество точек данных (начиная с нулевого уровня высоты), 
+		// подготавливаемых для сохранения в файл
+		unsigned saved_count_;
+		// копия исходного буфера <count> штук точек (unsigned long), из выходного 
+		// буфера АЦП
+		BYTE* buffer_; 
+	
+		void initialize();
+	public:
+		CSounding();
+		CSounding(const CSounding& obj);
+		CSounding(
+			BYTE* adc, 
+			unsigned count = __COUNT_MAX__, 
+			unsigned saved_count = __COUNT_MAX__/2);
+		~CSounding();
 
-		CLineBuf(void) : count(__COUNT_MAX__) {arr = new unsigned char [count];}
-		~CLineBuf(void){delete [] arr;}
+		// get
+		BYTE* getFullBuffer(){return buffer_;}
+		unsigned getFullSize(){return count_;}
+		unsigned getSavedSize(){return saved_count_;}
+
+		// set
+		void setFullSize(unsigned count){count_ = count;}
+		void setSavedSize(unsigned saved_count){saved_count_ = saved_count;}
 	};
 
 	// Обработка строки, измеренной АЦП.
@@ -111,7 +133,7 @@ namespace parus {
 		double zero_shift_im;
 
 		template<typename T>
-		double calculateZeroShift(const std::vector<T>& vec);
+		const double calculateZeroShift(const std::vector<T>& vec);
 
 		double calculateAbsThereshold(unsigned char* vec);
 
@@ -123,10 +145,11 @@ namespace parus {
 		void accumulate(BYTE *buf);
 		void average(unsigned pulse_count);
 		void setSavedSize(size_t size){_real_buf_size = size;}
-		size_t getSavedSize(void){return _real_buf_size;}
-		unsigned long* getBufer(void){return _buf;}
+		const size_t getSavedSize(void){return _real_buf_size;}
+		const unsigned long* getBufer(void){return _buf;}
 		
 		void prepareIPG_IonogramBuffer(xml_ionogram* ionogram, const unsigned short curFrq);
+		void prepareIPG_QuadraturesBuffer(xml_amplitudes& amplitudes, const unsigned short curFrq, const unsigned short gain);
 		void prepareDirty_IonogramBuffer();
 		void prepareDirty_AmplitudesBuffer();
 
@@ -134,10 +157,10 @@ namespace parus {
 		//Statistics calculateStatistics(const std::vector<T>& vec);
 
 		// get
-		short getShiftRe(){return static_cast<short>(zero_shift_re);}
-		short getShiftIm(){return static_cast<short>(zero_shift_im);}
-		char* returnIonogramBuffer(){return reinterpret_cast<char*>(_buf_ionogram);}
-		char* returnAmplitudesBuffer(){return reinterpret_cast<char*>(_buf_amplitudes);}
+		const short getShiftRe(){return static_cast<short>(zero_shift_re);}
+		const short getShiftIm(){return static_cast<short>(zero_shift_im);}
+		const char* returnIonogramBuffer(){return reinterpret_cast<char*>(_buf_ionogram);}
+		const char* returnAmplitudesBuffer(){return reinterpret_cast<char*>(_buf_amplitudes);}
 	};
 
 } // namespace parus

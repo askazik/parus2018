@@ -90,7 +90,7 @@ namespace parus {
 		tmpFrequencyData.type = 0;														//!< Вид модуляции (0 - гладкий импульс, 1 - ФКМ).
 
 		// Выделим буфер под упакованную строку. Считаем, что упакованная строка не больше исходной.
-		unsigned n = __COUNT_MAX__;
+		unsigned n = getSavedSize();
 		unsigned char *tmpArray = new unsigned char [n];
 		unsigned char *tmpLine = new unsigned char [n];
 		unsigned char *tmpAmplitude = new unsigned char [n];
@@ -166,7 +166,50 @@ namespace parus {
 		delete [] tmpAmplitude;
 		delete [] tmpArray;
 		delete [] dataLine;
-	} 
+	}
+
+	/// <summary>
+	/// Подготовка буфера квадратур для сохранения линии в файл.
+	/// Объём буфера уменьшен путём отбора точек, амплитуда которых больше уровня ограничения, т.е., предположительно,
+	/// соответствует появлению сигнала отражения в отклике.
+	/// </summary>
+	/// <param name="amplitudes">Ссылка на объект класса, содержащий инициализационную информацию об эксперименте.</param>
+	/// <param name="curFrq">Частота зондирования, дБ.</param>
+	/// <param name="gain">Усиление приемника, учитывающее аттенюатор, дБ.</param>
+	void lineADC::prepareIPG_QuadraturesBuffer(xml_amplitudes& amplitudes, const unsigned short curFrq, const unsigned short gain)
+	{
+		// Неизменяемые данные по текущей частоте
+		FrequencyData tmpFrequencyData;
+		tmpFrequencyData.gain_control = gain;// !< Значение ослабления входного аттенюатора дБ.
+		tmpFrequencyData.pulse_time = static_cast<unsigned short>(floor(1000./amplitudes.getPulseFrq()));//!< Время зондирования на одной частоте, [мс].
+		tmpFrequencyData.pulse_length = static_cast<unsigned char>(amplitudes.getPulseDuration());//!< Длительность зондирующего импульса, [мкc].
+		tmpFrequencyData.band = static_cast<unsigned char>(floor(1000000./amplitudes.getPulseDuration()));//!< Полоса сигнала, [кГц].
+		tmpFrequencyData.type = 0;														//!< Вид модуляции (0 - гладкий импульс, 1 - ФКМ).
+
+		// Выделим буфер под упакованную строку. Считаем, что упакованная строка не больше исходной.
+		unsigned n = getSavedSize();
+		unsigned char *tmpArray = new unsigned char [n];
+		unsigned char *tmpLine = new unsigned char [n];
+		unsigned char *tmpAmplitude = new unsigned char [n];
+  
+		unsigned j;
+		unsigned char *dataLine = new unsigned char [n];
+		// Усечение данных до размера 8 бит.
+		for(unsigned i = 0; i < n; i++) 
+			dataLine[i] = static_cast<unsigned char>(static_cast<unsigned short>(_abs.at(i)) >> 6);
+
+		SignalResponse tmpSignalResponse;
+		unsigned char countOutliers;
+		unsigned short countFrq = 0; // количество байт в упакованном частотном массиве
+
+		// Определим уровень наличия выбросов.
+		unsigned char thereshold = static_cast<unsigned char>(calculateAbsThereshold(dataLine));           
+		tmpFrequencyData.frequency = curFrq;
+		tmpFrequencyData.threshold_o = thereshold;
+		tmpFrequencyData.threshold_x = 0;
+		tmpFrequencyData.count_o = 0; // может изменяться
+		tmpFrequencyData.count_x = 0; // Антенна у нас одна о- и х- компоненты объединены.
+	}
 	
 	void lineADC::prepareDirty_IonogramBuffer()
 	{
@@ -229,6 +272,46 @@ namespace parus {
 
 		return thereshold;
 	}
+
+	// ************************************************************************
+	// Class CSounding
+	// Обработка буфера АЦП и подготовка для вывода в файл функцией WriteFile.
+	// ************************************************************************
+	
+	void CSounding::initialize()
+	{
+		buffer_ = (BYTE* ) new unsigned long [count_];
+		memset(buffer_, 0, count_*sizeof(unsigned long));
+	}
+
+	CSounding::CSounding() : 
+		count_(__COUNT_MAX__),
+		buffer_(nullptr)
+	{
+		initialize();
+	} 
+
+	CSounding::CSounding(const CSounding& obj)
+	{
+
+	}
+
+	CSounding::CSounding(
+		BYTE* adc, 
+		unsigned count = __COUNT_MAX__, 
+		unsigned saved_count = __COUNT_MAX__/2)
+	{
+
+	}
+
+	CSounding::~CSounding()
+	{
+		if(buffer_) delete [] buffer_;
+	}
+
+	// ************************************************************************
+	// Конец Class CSounding
+	// ************************************************************************
 
 } // namespace parus
 
