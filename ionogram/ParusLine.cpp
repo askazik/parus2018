@@ -273,45 +273,90 @@ namespace parus {
 		return thereshold;
 	}
 
-	// ************************************************************************
-	// Class CSounding
+	// *************************************************************************
+	// Class CBuffer
 	// Обработка буфера АЦП и подготовка для вывода в файл функцией WriteFile.
-	// ************************************************************************
+	// *************************************************************************
 	
-	void CSounding::initialize()
+	/// <summary>
+	/// Initializes a new instance of the <see cref="CBuffer"/> class.
+	/// По умолчанию:
+	/// count_ = __COUNT_MAX__ (число точек во входном буфере),
+	///	saved_count_ = __COUNT_MAX__/2 (число точек, сохраняемых в файл).
+	/// </summary>
+	CBuffer::CBuffer() : 
+		count_(__COUNT_MAX__),
+		saved_count_(__COUNT_MAX__/2),
+		buffer_(nullptr)
 	{
 		buffer_ = (BYTE* ) new unsigned long [count_];
 		memset(buffer_, 0, count_*sizeof(unsigned long));
-	}
-
-	CSounding::CSounding() : 
-		count_(__COUNT_MAX__),
-		buffer_(nullptr)
-	{
-		initialize();
 	} 
 
-	CSounding::CSounding(const CSounding& obj)
+	/// <summary>
+	/// Initializes a new instance of the <see cref="CBuffer"/> class.
+	/// </summary>
+	/// <param name="obj">Объект класса CBuffer.</param>
+	CBuffer::CBuffer(const CBuffer& obj)
 	{
+		count_ = obj.count_;
+		saved_count_ = obj.saved_count_;
 
+		if(buffer_) delete [] buffer_;
+		buffer_ = (BYTE* ) new unsigned long [count_];
+		memcpy(buffer_, obj.buffer_, count_*sizeof(unsigned long));
 	}
 
-	CSounding::CSounding(
-		BYTE* adc, 
-		unsigned count = __COUNT_MAX__, 
-		unsigned saved_count = __COUNT_MAX__/2)
+	/// <summary>
+	/// Initializes a new instance of the <see cref="CBuffer"/> class.
+	/// </summary>
+	/// <param name="adc">Указатель на исходный буфер АЦП.</param>
+	/// <param name="count">Число точек (32-бит) в исходном буфере.</param>
+	/// <param name="saved_count">Число точек для сохранения.</param>
+	/// По умолчанию:
+	/// count_ = __COUNT_MAX__ (число точек во входном буфере),
+	///	saved_count_ = __COUNT_MAX__/2 (число точек, сохраняемых в файл).
+	CBuffer::CBuffer(BYTE* adc, unsigned count,	unsigned saved_count) : 
+		count_(count),
+		saved_count_(saved_count),
+		buffer_(nullptr)
 	{
-
+		buffer_ = (BYTE* ) new unsigned long [count_];
+		memcpy(buffer_, adc, count_*sizeof(unsigned long));
 	}
 
-	CSounding::~CSounding()
+	/// <summary>
+	/// Finalizes an instance of the <see cref="CBuffer"/> class.
+	/// </summary>
+	CBuffer::~CBuffer()
 	{
 		if(buffer_) delete [] buffer_;
 	}
 
-	// ************************************************************************
-	// Конец Class CSounding
-	// ************************************************************************
+	/// <summary>
+	/// Operator=s the specified object.
+	/// </summary>
+	/// <param name="obj">The object CBuffer class.</param>
+	/// <returns></returns>
+	CBuffer& CBuffer::operator=(CBuffer& obj)
+	{
+		if (this == &obj) // проверка на себяприсваиваивание
+			return *this;
+
+		if(obj.getFullSize() != getFullSize()) 
+			delete [] buffer_;
+		count_ = obj.count_;
+		saved_count_ = obj.saved_count_;
+
+		buffer_ = (BYTE* ) new unsigned long [count_];
+		memcpy(buffer_, obj.getFullBuffer(), count_*sizeof(unsigned long));
+
+		return *this; // возвращаем ссылку на текущий объект
+	}
+
+	// *************************************************************************
+	// Конец Class CBuffer
+	// *************************************************************************
 
 } // namespace parus
 

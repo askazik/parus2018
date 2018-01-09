@@ -86,28 +86,28 @@ namespace parus {
 		double min, max;
 	};
 
+	// =========================================================================
 	// Новый класс для работы с строкой АЦП. 28.12.2017.
-	class CSounding
+	class CBuffer
 	{
-		// число точек (unsigned long) данных в строке АЦП (устанавливаем максимально
-		// возможную для более точного расчёта статистик)
+		// число точек (unsigned long) данных в строке АЦП (устанавливаем 
+		// максимально возможную для более точного расчёта статистик)
 		unsigned count_;
 		// количество точек данных (начиная с нулевого уровня высоты), 
 		// подготавливаемых для сохранения в файл
 		unsigned saved_count_;
-		// копия исходного буфера <count> штук точек (unsigned long), из выходного 
-		// буфера АЦП
+		// копия исходного буфера <count> штук точек (unsigned long), из 
+		// выходного буфера АЦП.
 		BYTE* buffer_; 
 	
-		void initialize();
 	public:
-		CSounding();
-		CSounding(const CSounding& obj);
-		CSounding(
+		CBuffer();
+		CBuffer(const CBuffer& obj);
+		CBuffer(
 			BYTE* adc, 
 			unsigned count = __COUNT_MAX__, 
 			unsigned saved_count = __COUNT_MAX__/2);
-		~CSounding();
+		virtual ~CBuffer();
 
 		// get
 		BYTE* getFullBuffer(){return buffer_;}
@@ -117,7 +117,11 @@ namespace parus {
 		// set
 		void setFullSize(unsigned count){count_ = count;}
 		void setSavedSize(unsigned saved_count){saved_count_ = saved_count;}
+
+		// operation
+		CBuffer& operator=(CBuffer& obj);
 	};
+	// =========================================================================
 
 	// Обработка строки, измеренной АЦП.
 	class lineADC
@@ -133,7 +137,7 @@ namespace parus {
 		double zero_shift_im;
 
 		template<typename T>
-		const double calculateZeroShift(const std::vector<T>& vec);
+		double calculateZeroShift(const std::vector<T>& vec);
 
 		double calculateAbsThereshold(unsigned char* vec);
 
@@ -157,10 +161,10 @@ namespace parus {
 		//Statistics calculateStatistics(const std::vector<T>& vec);
 
 		// get
-		const short getShiftRe(){return static_cast<short>(zero_shift_re);}
-		const short getShiftIm(){return static_cast<short>(zero_shift_im);}
-		const char* returnIonogramBuffer(){return reinterpret_cast<char*>(_buf_ionogram);}
-		const char* returnAmplitudesBuffer(){return reinterpret_cast<char*>(_buf_amplitudes);}
+		short getShiftRe(){return static_cast<short>(zero_shift_re);}
+		short getShiftIm(){return static_cast<short>(zero_shift_im);}
+		char* returnIonogramBuffer(){return reinterpret_cast<char*>(_buf_ionogram);}
+		char* returnAmplitudesBuffer(){return reinterpret_cast<char*>(_buf_amplitudes);}
 	};
 
 } // namespace parus
