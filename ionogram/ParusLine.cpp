@@ -281,30 +281,26 @@ namespace parus {
 	/// <summary>
 	/// Initializes a new instance of the <see cref="CBuffer"/> class.
 	/// По умолчанию:
-	/// count_ = __COUNT_MAX__ (число точек во входном буфере),
-	///	saved_count_ = __COUNT_MAX__/2 (число точек, сохраняемых в файл).
+	///	saved_count_ = __COUNT_MAX__/2 (число точек, сохраняемых в файл),
+	/// Все массивы заполняются нулями. Размер массивов = __COUNT_MAX__.
 	/// </summary>
 	CBuffer::CBuffer() : 
-		count_(__COUNT_MAX__),
 		saved_count_(__COUNT_MAX__/2),
-		buffer_(nullptr)
-	{
-		buffer_ = (BYTE* ) new unsigned long [count_];
-		memset(buffer_, 0, count_*sizeof(unsigned long));
-	} 
+		re_(__COUNT_MAX__,0),
+		im_(__COUNT_MAX__,0),
+		abs_(__COUNT_MAX__,0)
+	{} 
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="CBuffer"/> class.
 	/// </summary>
 	/// <param name="obj">Объект класса CBuffer.</param>
-	CBuffer::CBuffer(const CBuffer& obj)
+	CBuffer::CBuffer(const CBuffer& obj) :
+		saved_count_(obj.getSavedSize())
 	{
-		count_ = obj.count_;
-		saved_count_ = obj.saved_count_;
-
-		if(buffer_) delete [] buffer_;
-		buffer_ = (BYTE* ) new unsigned long [count_];
-		memcpy(buffer_, obj.buffer_, count_*sizeof(unsigned long));
+		re_.assign(obj.re_.begin(),obj.re_.end());
+		im_.assign(obj.im_.begin(),obj.im_.end());
+		abs_.assign(obj.abs_.begin(),obj.abs_.end());
 	}
 
 	/// <summary>
@@ -317,12 +313,12 @@ namespace parus {
 	/// count_ = __COUNT_MAX__ (число точек во входном буфере),
 	///	saved_count_ = __COUNT_MAX__/2 (число точек, сохраняемых в файл).
 	CBuffer::CBuffer(BYTE* adc, unsigned count,	unsigned saved_count) : 
-		count_(count),
 		saved_count_(saved_count),
-		buffer_(nullptr)
+		re_(count,0),
+		im_(count,0),
+		abs_(count,0)
 	{
-		buffer_ = (BYTE* ) new unsigned long [count_];
-		memcpy(buffer_, adc, count_*sizeof(unsigned long));
+		accumulate(adc);
 	}
 
 	/// <summary>
@@ -330,7 +326,42 @@ namespace parus {
 	/// </summary>
 	CBuffer::~CBuffer()
 	{
-		if(buffer_) delete [] buffer_;
+
+	}
+
+	/// <summary>
+	/// Аккумулирует указанный буфер АЦП в объекте. Количество точек уже
+	/// установлено в count_.
+	/// </summary>
+	/// <param name="adc">Указатель на буфер АЦП.</param>
+	void CBuffer::accumulate(BYTE* adc)
+	{
+		for(size_t i = 0; i < re_.size(); i++)
+		{
+	        // Используем двухканальную интерпретацию через анонимную структуру
+	        union {
+	            unsigned long word;     // 4-байтное слово двухканального АЦП
+	            adcTwoChannels twoCh;  // двухканальные (квадратурные) данные
+	        };
+	            
+			// Разбиение на квадратуры. Значимы только старшие 14 бит.
+	        word = adc[i];
+			re_.at(i) = twoCh.re.value>>2;
+	        im_.at(i) = twoCh.im.value>>2;
+			abs_.at(i) += sqrt(
+				pow(static_cast<double>(re_.at(i)),2) + 
+				pow(static_cast<double>(im_.at(i)),2)
+				);
+		
+			// Выбросим исключение для обработки нештатной ситуации, чтобы 
+			// уменьшить коэффициент усиления. В верхней процедуре предусмотреть 
+			// заполнение LOGa частоты, на которой произошло исключение.
+			// !!! Данные могут заполниться не полностью !!!
+			bool isRe = abs(re_.at(i)) >= __AMPLITUDE_MAX__;
+			bool isIm = abs(im_.at(i)) >= __AMPLITUDE_MAX__;
+			if(isRe || isIm)
+				throw CADCOverflowException(i, isRe, isIm);
+		}
 	}
 
 	/// <summary>
@@ -343,14 +374,37 @@ namespace parus {
 		if (this == &obj) // проверка на себяприсваиваивание
 			return *this;
 
-		if(obj.getFullSize() != getFullSize()) 
-			delete [] buffer_;
-		count_ = obj.count_;
-		saved_count_ = obj.saved_count_;
+		saved_count_ = obj.getSavedSize();
+		re_.assign(obj.re_.begin(),obj.re_.end());
+		im_.assign(obj.im_.begin(),obj.im_.end());
+		abs_.assign(obj.abs_.begin(),obj.abs_.end());
 
-		buffer_ = (BYTE* ) new unsigned long [count_];
-		memcpy(buffer_, obj.getFullBuffer(), count_*sizeof(unsigned long));
-
+		return *this; // возвращаем ссылку на текущий объект
+	}
+	
+	/// <summary>
+	/// Operator+= аккумулирует абсолютные амплитуды сигнала.
+	/// Сохраняются последние квадратурные амплитуды.
+	/// </summary>
+	/// <param name="adc">Сырой массив отсчётов АЦП.</param>
+	/// <returns></returns>
+	CBuffer& CBuffer::operator+=(BYTE* adc)
+	{
+		accumulate(adc);
+		return *this; // возвращаем ссылку на текущий объект
+	}
+	
+	/// <summary>
+	/// Operator/= производит деление накопленного вектора абсолютных амплитуд
+	/// на число в интервале -127..+127.
+	/// </summary>
+	/// <param name="value">Делитель типа char.</param>
+	/// <returns></returns>
+	CBuffer& CBuffer::operator/=(char value)
+	{
+		if(value)
+			for (auto it = abs_.begin(); it != abs_.end(); ++it)
+				*it /= value;
 		return *this; // возвращаем ссылку на текущий объект
 	}
 

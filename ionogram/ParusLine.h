@@ -90,36 +90,38 @@ namespace parus {
 	// Новый класс для работы с строкой АЦП. 28.12.2017.
 	class CBuffer
 	{
-		// число точек (unsigned long) данных в строке АЦП (устанавливаем 
-		// максимально возможную для более точного расчёта статистик)
-		unsigned count_;
 		// количество точек данных (начиная с нулевого уровня высоты), 
 		// подготавливаемых для сохранения в файл
 		unsigned saved_count_;
-		// копия исходного буфера <count> штук точек (unsigned long), из 
-		// выходного буфера АЦП.
-		BYTE* buffer_; 
+
+		// данные
+		std::vector<short> re_, im_; // 13 бит со знаком
+		std::vector<double> abs_;
+		// статистики
+		Statistics stat_re_, stat_im_;
+		Statistics stat_abs_;
 	
+		void accumulate(BYTE* adc);
 	public:
 		CBuffer();
 		CBuffer(const CBuffer& obj);
 		CBuffer(
-			BYTE* adc, 
+			BYTE* adc,
 			unsigned count = __COUNT_MAX__, 
 			unsigned saved_count = __COUNT_MAX__/2);
 		virtual ~CBuffer();
 
 		// get
-		BYTE* getFullBuffer(){return buffer_;}
-		unsigned getFullSize(){return count_;}
-		unsigned getSavedSize(){return saved_count_;}
+		unsigned getFullSize() const {return re_.size();}
+		unsigned getSavedSize() const {return saved_count_;}
 
 		// set
-		void setFullSize(unsigned count){count_ = count;}
 		void setSavedSize(unsigned saved_count){saved_count_ = saved_count;}
 
 		// operation
 		CBuffer& operator=(CBuffer& obj);
+		CBuffer& operator+=(BYTE* adc);
+		CBuffer& operator/=(char value);
 	};
 	// =========================================================================
 
