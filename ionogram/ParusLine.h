@@ -74,7 +74,7 @@ namespace parus {
 	#pragma pack(pop)
 
 	// Структура, хранящая характеристики выборки.
-	struct Statistics
+	struct CStatistics
 	{
 		double Q1, Q3, dQ; // квартили и межквартильный диапазон
 		double thereshold; // верхняя граница выбросов
@@ -84,6 +84,11 @@ namespace parus {
 		double std_mean; // стандартное отклонение (корень из дисперсии) от среднего
 		double std_median; // стандартное отклонение (корень из дисперсии) от медианы
 		double min, max;
+	};
+	
+	struct CPoint {
+		short re; // условно первая квадратура
+		short im; // условно вторая квадратура
 	};
 
 	// =========================================================================
@@ -97,11 +102,15 @@ namespace parus {
 		// данные
 		std::vector<short> re_, im_; // 13 бит со знаком
 		std::vector<double> abs_;
-		// статистики
-		Statistics stat_re_, stat_im_;
-		Statistics stat_abs_;
+
+		BYTE* ArrayToFile_;
+		size_t BytesCountToFile_;
 	
 		void accumulate(BYTE* adc);
+		template<typename T>
+		double calculate_zero_shift(const std::vector<T>& vec) const;
+		template<typename T>
+		double calculate_thereshold(<T>* arr, size_t count) const;
 	public:
 		CBuffer();
 		CBuffer(const CBuffer& obj);
@@ -114,14 +123,24 @@ namespace parus {
 		// get
 		unsigned getFullSize() const {return re_.size();}
 		unsigned getSavedSize() const {return saved_count_;}
+		CPoint getZeroShift() const;
 
 		// set
-		void setSavedSize(unsigned saved_count){saved_count_ = saved_count;}
+		void setSavedSize(const unsigned saved_count){saved_count_ = saved_count;}
 
 		// operation
 		CBuffer& operator=(CBuffer& obj);
 		CBuffer& operator+=(BYTE* adc);
 		CBuffer& operator/=(char value);
+
+		// подготовка массива к записи в файл
+		size_t getBytesCountToFile() const {return BytesCountToFile_;}
+		BYTE* getBytesArrayToFile() const {return ArrayToFile_;}
+
+		void prepareIonogram_Dirty();
+		void prepareIonogram_IPG(const xml_ionogram& ionogram, const unsigned short curFrq);
+		void prepareAmplitudes_Dirty();
+		void prepareAmplitudes_IPG();
 	};
 	// =========================================================================
 

@@ -11,10 +11,9 @@ namespace parus {
 	const double parusWork::_C = 2.9979e8; // скорость света в вакууме
 
 	parusWork::parusWork(void) :
-		_hFile(NULL)
-	{
-		_height_count = __COUNT_MAX__;
-		
+		_hFile(NULL),
+		_height_count(__COUNT_MAX__)
+	{	
 		// Открываем устройство, используя глобальные переменные, установленные заранее.	
 		_DrvPars = initADC(_height_count);
 		_DAQ = DAQ_open(_DriverName.c_str(), &_DrvPars); // NULL 
@@ -674,6 +673,12 @@ namespace parus {
 		{
 			adjustSounding(curFrq);
 			lineADC line(ionogram->getHeightCount());
+
+			// !!!
+			CBuffer buffer;
+			buffer.setSavedSize(ionogram->getHeightCount());
+			// !!!
+
 			for (unsigned k = 0; k < ionogram->getPulseCount(); k++) // счётчик циклов суммирования на одной частоте
 			{
 				ASYNC_TRANSFER(); // запустим АЦП
@@ -688,6 +693,10 @@ namespace parus {
 				try
 				{
 					line.accumulate(getBuffer());
+
+					// !!!
+					buffer += getBuffer();
+					// !!!
 				}
 				catch(CADCOverflowException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
 				{
@@ -704,9 +713,15 @@ namespace parus {
 			}
 			// усредним по количеству импульсов зондирования на одной частоте
 			if(ionogram->getPulseCount() > 1)
+			{
 				line.average(ionogram->getPulseCount());
+
+				// !!!
+				buffer /= ionogram->getPulseCount();
+				// !!!
+			}
 			// Сохранение линии в файле.
-			switch(ionogram->getVersion())
+			switch(ionogram->getVersion()) // подготовка массива char
 			{
 			case 0: // ИПГ
 				line.prepareIPG_IonogramBuffer(ionogram,curFrq);

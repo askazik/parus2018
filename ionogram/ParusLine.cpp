@@ -288,7 +288,9 @@ namespace parus {
 		saved_count_(__COUNT_MAX__/2),
 		re_(__COUNT_MAX__,0),
 		im_(__COUNT_MAX__,0),
-		abs_(__COUNT_MAX__,0)
+		abs_(__COUNT_MAX__,0),
+		ArrayToFile_(nullptr),
+		BytesCountToFile_(0)
 	{} 
 
 	/// <summary>
@@ -296,7 +298,9 @@ namespace parus {
 	/// </summary>
 	/// <param name="obj">Объект класса CBuffer.</param>
 	CBuffer::CBuffer(const CBuffer& obj) :
-		saved_count_(obj.getSavedSize())
+		saved_count_(obj.getSavedSize()),
+		ArrayToFile_(nullptr),
+		BytesCountToFile_(0)
 	{
 		re_.assign(obj.re_.begin(),obj.re_.end());
 		im_.assign(obj.im_.begin(),obj.im_.end());
@@ -316,7 +320,9 @@ namespace parus {
 		saved_count_(saved_count),
 		re_(count,0),
 		im_(count,0),
-		abs_(count,0)
+		abs_(count,0),
+		ArrayToFile_(nullptr),
+		BytesCountToFile_(0)
 	{
 		accumulate(adc);
 	}
@@ -326,7 +332,8 @@ namespace parus {
 	/// </summary>
 	CBuffer::~CBuffer()
 	{
-
+		if(ArrayToFile_)
+			delete [] ArrayToFile_;
 	}
 
 	/// <summary>
@@ -406,6 +413,195 @@ namespace parus {
 			for (auto it = abs_.begin(); it != abs_.end(); ++it)
 				*it /= value;
 		return *this; // возвращаем ссылку на текущий объект
+	}
+
+	/// <summary>
+	/// Возвращает смещение нуля для вектора произвольного типа.
+	/// Используем только верхнюю половину вектора, где отражения малы.
+	/// </summary>
+	/// <param name="vec">Вектор произвольного типа.</param>
+	/// <returns>Тип double.</returns>
+	template<typename T>
+	double CBuffer::calculate_zero_shift(const std::vector<T>& vec) const
+	{
+		double tmp;
+
+		int n = vec.size();
+		std::vector<short> top_half(n/2,0);
+		top_half.insert(top_half.begin(),vec.begin()+(n/2-1),vec.end()); 
+
+		// Сортируем по возрастанию и определяем медиану.
+		sort(top_half.begin(), top_half.end());
+		tmp = (top_half.at(n/2),top_half.at(n/2-1))/2.;
+
+		return tmp;
+	}
+
+	template<typename T>
+	double CBuffer::calculate_thereshold(<T>* _in, size_t count) const
+	{
+		double thereshold;
+		std::vector<double> vec(count,0);
+
+		// 0. Заполним рабочий вектор.
+		for(size_t i = 0; i < count; i++) 
+			vec.at(i) = _in[i];
+		// 1. Упорядочим данные по возрастанию.
+		sort(vec.begin(), vec.end());
+		// 2. Квартили (n - чётное, степень двойки!!!)
+		double Q1 = (vec.at(count/4)+vec.at(count/4-1))/2.;
+		double Q3 = (vec.at(3*count/4),vec.at(3*count/4-1))/2.;
+		// 3. Межквартильный диапазон
+		double dQ = Q3 - Q1;
+		// 4. Верхняя граница выбросов.
+		thereshold = Q3 + 3 * dQ;
+
+		return thereshold;
+	}
+
+	/// <summary>
+	/// Возвращает смещение нуля для обоих каналов.
+	/// </summary>
+	/// <returns>Тип CPoint.</returns>
+	CPoint CBuffer::getZeroShift() const
+	{
+		CPoint out;
+		out.re = static_cast<short>(calculate_zero_shift(re_));
+		out.im = static_cast<short>(calculate_zero_shift(im_));
+
+		return out;
+	}
+
+	/// <summary>
+	/// Подготовка черновой ионограммы для записи в файл.
+	/// Заполнение private свойств:
+	/// BYTE* ArrayToFile_;
+	/// size_t BytesCountToFile_;
+	/// </summary>
+	void CBuffer::prepareIonogram_Dirty()
+	{
+		// Проверим на существование и уничтожим, если распределялся.
+		if(ArrayToFile_)
+			delete [] ArrayToFile_;
+
+		BytesCountToFile_ = getSavedSize();
+		unsigned char *dataLine = new unsigned char [BytesCountToFile_];
+
+		// Усечение данных до размера 8 бит.
+		for(size_t i = 0; i < getSavedSize(); i++) 
+			dataLine[i] = static_cast<unsigned char>(static_cast<unsigned short>(abs_.at(i)) >> 6);
+
+		ArrayToFile_ = static_cast<BYTE *>(dataLine);
+	}
+
+	/// <summary>
+	/// Подготовка ионограммы в формате ИПГ для записи в файл.
+	/// Заполнение private свойств:
+	/// BYTE* ArrayToFile_;
+	/// size_t BytesCountToFile_;
+	/// </summary>
+	/// <param name="ionogram">const xml_ionogram& - параметры зондирования для ионограммы.</param>
+	/// <param name="curFrq">const unsigned short - текущая частота зондирования, кГц.</param>
+	void CBuffer::prepareIonogram_IPG(const xml_ionogram& ionogram, const unsigned short curFrq)
+	{
+		// Неизменяемые данные по текущей частоте
+		FrequencyData tmpFrequencyData;
+		tmpFrequencyData.gain_control = static_cast<unsigned short>(ionogram.getGain());// !< Значение ослабления входного аттенюатора дБ.
+		tmpFrequencyData.pulse_time = static_cast<unsigned short>(floor(1000./ionogram.getPulseFrq()));//!< Время зондирования на одной частоте, [мс].
+		tmpFrequencyData.pulse_length = static_cast<unsigned char>(ionogram.getPulseDuration());//!< Длительность зондирующего импульса, [мкc].
+		tmpFrequencyData.band = static_cast<unsigned char>(floor(1000000./ionogram.getPulseDuration()));//!< Полоса сигнала, [кГц].
+		tmpFrequencyData.type = 0;														//!< Вид модуляции (0 - гладкий импульс, 1 - ФКМ).
+
+		// Выделим буфер под упакованную строку. Считаем, что упакованная строка не больше исходной.
+		unsigned n = getSavedSize();
+		unsigned char *tmpArray = new unsigned char [n];
+		unsigned char *tmpLine = new unsigned char [n];
+		unsigned char *tmpAmplitude = new unsigned char [n];
+  
+		unsigned j;
+		unsigned char *dataLine = new unsigned char [n];
+
+		// Усечение данных до размера 8 бит.
+		for(unsigned i = 0; i < n; i++) 
+			dataLine[i] = static_cast<unsigned char>(static_cast<unsigned short>(abs_.at(i)) >> 6);
+
+		SignalResponse tmpSignalResponse;
+		unsigned char countOutliers;
+		unsigned short countFrq = 0; // количество байт в упакованном частотном массиве
+
+		// Определим уровень наличия выбросов.
+		unsigned char thereshold = static_cast<unsigned char>(round(calculate_thereshold(dataLine, n)));           
+		tmpFrequencyData.frequency = curFrq;
+		tmpFrequencyData.threshold_o = thereshold;
+		tmpFrequencyData.threshold_x = 0;
+		tmpFrequencyData.count_o = 0; // может изменяться
+		tmpFrequencyData.count_x = 0; // Антенна у нас одна о- и х- компоненты объединены.
+
+		unsigned short countLine = 0; // количество байт в упакованной строке
+		countOutliers = 0; // счетчик количества выбросов в текущей строке
+		j = 0;
+		while(j < n) // Находим выбросы
+		{
+			if(dataLine[j] > thereshold) // Выброс найден - обрабатываем его.
+			{
+				tmpSignalResponse.height_begin = static_cast<unsigned long>(floor(1.0 * j * ionogram.getHeightStep()));
+				tmpSignalResponse.count_samples = 1;
+				tmpAmplitude[tmpSignalResponse.count_samples-1] = dataLine[j];
+				j++; // переход к следующему элементу
+				while(dataLine[j] > thereshold && j < n)
+				{
+					tmpSignalResponse.count_samples++;
+					tmpAmplitude[tmpSignalResponse.count_samples-1] = dataLine[j];
+					j++; // переход к следующему элементу
+				}
+				countOutliers++; // прирастим количество выбросов в строке
+
+				// Собираем упакованные выбросы
+				// Заголовок выброса.
+				unsigned short nn = sizeof(SignalResponse);
+				memcpy(tmpLine+countLine, &tmpSignalResponse, nn);
+				countLine += nn;
+				// Данные выброса.
+				nn = tmpSignalResponse.count_samples*sizeof(unsigned char);
+				memcpy(tmpLine+countLine, tmpAmplitude, nn);
+				countLine += nn;
+			}
+			else
+				j++; // тупо двигаемся дальше
+		}
+
+		// Данные для текущей частоты помещаем в буфер.
+		// Заголовки частот пишутся всегда, даже если выбросы отсутствуют.
+		tmpFrequencyData.count_o = countOutliers;
+		// Заголовок частоты.
+		unsigned nFrequencyData = sizeof(FrequencyData);
+		memcpy(tmpArray, &tmpFrequencyData, nFrequencyData);
+		// сохраняем ранее сформированную цепочку выбросов
+		if(countLine)
+			memcpy(tmpArray+nFrequencyData, tmpLine, countLine);
+
+		// Проверим на существование и уничтожим, если распределялся.
+		if(ArrayToFile_)
+			delete [] ArrayToFile_;
+		// Заполним хранилище данными.
+		BytesCountToFile_ = countLine + nFrequencyData;
+		unsigned char *dataLine = new unsigned char [BytesCountToFile_];
+		memcpy(ArrayToFile_, reinterpret_cast<BYTE*>(tmpArray), BytesCountToFile_);
+
+		delete [] tmpLine;
+		delete [] tmpAmplitude;
+		delete [] tmpArray;
+		delete [] dataLine;
+	}
+
+	void CBuffer::prepareAmplitudes_Dirty()
+	{
+
+	}
+
+	void CBuffer::prepareAmplitudes_IPG()
+	{
+
 	}
 
 	// *************************************************************************
