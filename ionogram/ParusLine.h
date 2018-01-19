@@ -28,18 +28,21 @@ namespace parus {
 
 	#pragma pack(push, 1)
 
-	struct adcChannel {
+	struct adcChannel 
+	{
 		unsigned short b0: 1;  // Устанавливается в 1 в первом отсчете блока для каждого канала АЦП (т.е. после старта АЦП или после каждого старта в старт-стопном режиме).
 		unsigned short b1: 1;  // Устанавливается в 1 в отсчете, который соответствует последнему опрашиваемому входу (по порядку расположения номеров входов в памяти мультиплексора) для каждого канала АЦП.    
 		short value : 14; // данные из одного канала АЦП, 14-разрядное слово
 	};
 	
-	struct adcTwoChannels {
+	struct adcTwoChannels 
+	{
 		adcChannel re; // условно первая квадратура
 		adcChannel im; // условно вторая квадратура
 	};
 
-	struct ionPackedData { // Упакованные данные ионограммы.
+	struct ionPackedData // Упакованные данные ионограммы.
+	{ 
 		unsigned size; // Размер упакованной ионограммы в байтах.
 		unsigned char *ptr;   // Указатель на блок данных упакованной ионограммы.
 	};
@@ -48,7 +51,8 @@ namespace parus {
 	/* Родные структуры данных ИПГ-ИЗМИРАН */
 	/* =====================================================================  */
 	/* Каждая строка начинается с заголовка следующей структуры */
-	struct FrequencyData {
+	struct FrequencyData 
+	{
 		unsigned short frequency; //!< Частота зондирования, [кГц].
 		unsigned short gain_control; // !< Значение ослабления входного аттенюатора дБ.
 		unsigned short pulse_time; //!< Время зондирования на одной частоте, [мс].
@@ -65,7 +69,8 @@ namespace parus {
 	/* Cразу же после перечисления всех SignalResponse  и SignalSample  для обыкновенных откликов следуют FrequencyData::count_x */
 	/* структур SignalResponse, описывающих необыкновенные отклики с массивом структур SignalSample после каждой из них. Величины */
 	/* FrequencyData::count_o и FrequencyData::count_x могут быть равны нулю, тогда соответствующие данные отсутствуют. */
-	struct SignalResponse {
+	struct SignalResponse 
+	{
 		unsigned long height_begin; //!< начальная высота, [м]
 		unsigned short count_samples; //!< Число дискретов
 	};
@@ -86,7 +91,8 @@ namespace parus {
 		double min, max;
 	};
 	
-	struct CPoint {
+	struct CPoint 
+	{
 		short re; // условно первая квадратура
 		short im; // условно вторая квадратура
 	};
@@ -108,9 +114,9 @@ namespace parus {
 	
 		void accumulate(BYTE* adc);
 		template<typename T>
-		double calculate_zero_shift(const std::vector<T>& vec) const;
+		double const calculate_zero_shift(const std::vector<T>& vec) const;
 		template<typename T>
-		double calculate_thereshold(<T>* arr, size_t count) const;
+		double const calculate_thereshold(const T* arr, size_t count) const;
 	public:
 		CBuffer();
 		CBuffer(const CBuffer& obj);

@@ -111,18 +111,18 @@ namespace parus {
 		const Measurement getMeasurement(){return _measurement;}
 
 		// Информация из заголовка.
-		virtual unsigned getVersion() const {return _header._map.at("version");}
-		virtual unsigned getHeightStep() const {return _header._map.at("height_step");}
+		virtual const unsigned getVersion() const {return _header._map.at("version");}
+		virtual const unsigned getHeightStep() const {return _header._map.at("height_step");}
 		virtual void setHeightStep(double value){_header._map.at("height_step") = static_cast<unsigned>(value);}
-		virtual unsigned getHeightCount() const {return _header._map.at("height_count");}
+		virtual const unsigned getHeightCount() const {return _header._map.at("height_count");}
 		virtual void setHeightCount(unsigned value){_header._map.at("height_count") = value;}
-		virtual unsigned getPulseCount() const {return _header._map.at("pulse_count");}
+		virtual const unsigned getPulseCount() const {return _header._map.at("pulse_count");}
 		virtual void setPulseCount(unsigned value){_header._map.at("pulse_count") = value;}
-		virtual unsigned getAttenuation() const {return _header._map.at("attenuation");}
-		virtual unsigned getGain() const {return _header._map.at("gain");}
-		virtual unsigned getPulseFrq() const {return _header._map.at("pulse_frq");}
-		virtual unsigned getPulseDuration() const {return _header._map.at("pulse_duration");}
-		virtual unsigned getSwitchFrequency() const {return _header._map.at("switch_frequency");}	
+		virtual const unsigned getAttenuation() const {return _header._map.at("attenuation");}
+		virtual const unsigned getGain() const {return _header._map.at("gain");}
+		virtual const unsigned getPulseFrq() const {return _header._map.at("pulse_frq");}
+		virtual const unsigned getPulseDuration() const {return _header._map.at("pulse_duration");}
+		virtual const unsigned getSwitchFrequency() const {return _header._map.at("switch_frequency");}	
 	};
 
 	// Блок планирования эксперимента

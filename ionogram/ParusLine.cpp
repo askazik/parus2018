@@ -422,7 +422,7 @@ namespace parus {
 	/// <param name="vec">¬ектор произвольного типа.</param>
 	/// <returns>“ип double.</returns>
 	template<typename T>
-	double CBuffer::calculate_zero_shift(const std::vector<T>& vec) const
+	double const CBuffer::calculate_zero_shift(const std::vector<T>& vec) const
 	{
 		double tmp;
 
@@ -438,7 +438,7 @@ namespace parus {
 	}
 
 	template<typename T>
-	double CBuffer::calculate_thereshold(<T>* _in, size_t count) const
+	double const CBuffer::calculate_thereshold(const T* _in, size_t count) const
 	{
 		double thereshold;
 		std::vector<double> vec(count,0);
@@ -530,7 +530,8 @@ namespace parus {
 		unsigned short countFrq = 0; // количество байт в упакованном частотном массиве
 
 		// ќпределим уровень наличи€ выбросов.
-		unsigned char thereshold = static_cast<unsigned char>(round(calculate_thereshold(dataLine, n)));           
+		unsigned char thereshold = static_cast<unsigned char>
+			(floor(0.5 + calculate_thereshold(dataLine, n))); // отсутствует round!!!
 		tmpFrequencyData.frequency = curFrq;
 		tmpFrequencyData.threshold_o = thereshold;
 		tmpFrequencyData.threshold_x = 0;
@@ -585,7 +586,7 @@ namespace parus {
 			delete [] ArrayToFile_;
 		// «аполним хранилище данными.
 		BytesCountToFile_ = countLine + nFrequencyData;
-		unsigned char *dataLine = new unsigned char [BytesCountToFile_];
+		dataLine = new unsigned char [BytesCountToFile_];
 		memcpy(ArrayToFile_, reinterpret_cast<BYTE*>(tmpArray), BytesCountToFile_);
 
 		delete [] tmpLine;
