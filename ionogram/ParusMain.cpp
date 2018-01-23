@@ -41,7 +41,6 @@ int main(void)
 	try	
 	{
 		parusWork *work = new parusWork(); // Подготовка аппаратуры к зондированию.
-		Sleep(100); // Задержка для корректной инициализации.	
 
 		// Перебор по элементам проекта.
 		for(size_t i=0; i < project.getModulesCount(); i++)
@@ -52,11 +51,13 @@ int main(void)
 			case MEASUREMENT: // пропускаем т.к. отсутствует реальное измерение
 				break;
 			case IONOGRAM:
+				work->setup(&ionogram);
 				work->openIonogramFile(&ionogram);
 				RetStatus = work->ionogram(&ionogram);
 				work->closeOutputFile();
 				break;
 			case AMPLITUDES:
+				work->setup(&amplitudes);
 				work->openDataFile(&amplitudes);
 				RetStatus = work->amplitudes(&amplitudes,dt);
 				work->closeOutputFile();

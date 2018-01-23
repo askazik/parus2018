@@ -141,7 +141,7 @@ namespace parus {
 
 		// подготовка массива к записи в файл
 		size_t getBytesCountToFile() const {return BytesCountToFile_;}
-		BYTE* getBytesArrayToFile() const {return ArrayToFile_;}
+		char* getBytesArrayToFile() const {return (char*)ArrayToFile_;}
 
 		void prepareIonogram_Dirty();
 		void prepareIonogram_IPG(const xml_ionogram& ionogram, const unsigned short curFrq);

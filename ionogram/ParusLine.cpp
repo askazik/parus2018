@@ -343,6 +343,12 @@ namespace parus {
 	/// <param name="adc">Указатель на буфер АЦП.</param>
 	void CBuffer::accumulate(BYTE* adc)
 	{
+		unsigned long *_tmp;
+		_tmp = new unsigned long [re_.size()];
+		// В буффере АЦП сохранены два сырых 16-битных чередующихся канала на 
+		// одной частоте (count - количество 32-разрядных слов).
+		memcpy(_tmp, adc, re_.size()*4); // копируем весь аппаратный буфер
+
 		for(size_t i = 0; i < re_.size(); i++)
 		{
 	        // Используем двухканальную интерпретацию через анонимную структуру
@@ -352,9 +358,9 @@ namespace parus {
 	        };
 	            
 			// Разбиение на квадратуры. Значимы только старшие 14 бит.
-	        word = adc[i];
-			re_.at(i) = twoCh.re.value>>2;
-	        im_.at(i) = twoCh.im.value>>2;
+	        word = _tmp[i];
+			re_.at(i) = twoCh.re.value; // уже смещено на 2 байта вправо
+	        im_.at(i) = twoCh.im.value; // уже смещено на 2 байта вправо
 			abs_.at(i) += sqrt(
 				pow(static_cast<double>(re_.at(i)),2) + 
 				pow(static_cast<double>(im_.at(i)),2)
@@ -369,6 +375,7 @@ namespace parus {
 			if(isRe || isIm)
 				throw CADCOverflowException(i, isRe, isIm);
 		}
+		delete [] _tmp;
 	}
 
 	/// <summary>
