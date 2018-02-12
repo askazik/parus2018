@@ -798,31 +798,31 @@ namespace parus {
 			_g = G.at(numFrq); // усиление для заданной частоты зондирования
 			adjustSounding(curFrq);
 
-			lineADC line(amplitudes->getHeightCount());
+			//lineADC line(amplitudes->getHeightCount());
 
-			ASYNC_TRANSFER(); // запустим АЦП
-				
-			// Цикл проверки до появления результатов в буфере.
-			// READ_BUFISCOMPLETE - сбоит на частоте 47 Гц
-			while(READ_ISCOMPLETE(msTimeout) == NULL);
+			//ASYNC_TRANSFER(); // запустим АЦП
+			//	
+			//// Цикл проверки до появления результатов в буфере.
+			//// READ_BUFISCOMPLETE - сбоит на частоте 47 Гц
+			//while(READ_ISCOMPLETE(msTimeout) == NULL);
 
-			// Остановим АЦП
-			READ_ABORTIO();					
+			//// Остановим АЦП
+			//READ_ABORTIO();					
 
-			try
-			{
-				line.accumulate(getBuffer());
-			}
-			catch(CADCOverflowException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
-			{
-				// 1. Запись в журнал
-				std::stringstream ss;
-				ss << curFrq << '\t' << e.getHeightNumber() * amplitudes->getHeightStep()  << '\t' 
-					<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
-				_log.push_back(ss.str());
-				// 2. Уменьшение усиления сигнала (выполняется для последующей настройки частоты зондирования)
-				G.at(numFrq) = G.at(numFrq) - 1; // уменьшаем усиление на 6 дБ (вдвое по амплитуде) для следующего импульса на частоте
-			}
+			//try
+			//{
+			//	line.accumulate(getBuffer());
+			//}
+			//catch(CADCOverflowException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
+			//{
+			//	// 1. Запись в журнал
+			//	std::stringstream ss;
+			//	ss << curFrq << '\t' << e.getHeightNumber() * amplitudes->getHeightStep()  << '\t' 
+			//		<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
+			//	_log.push_back(ss.str());
+			//	// 2. Уменьшение усиления сигнала (выполняется для последующей настройки частоты зондирования)
+			//	G.at(numFrq) = G.at(numFrq) - 1; // уменьшаем усиление на 6 дБ (вдвое по амплитуде) для следующего импульса на частоте
+			//}
 
 			// Сохранение линии в файле.
 			switch(amplitudes->getVersion())
@@ -831,7 +831,7 @@ namespace parus {
 					//work->saveDirtyLine();
 					break;
 				case 1: // без упаковки данных (as is) и информации об усилении
-					line.prepareDirty_AmplitudesBuffer();
+					//line.prepareDirty_AmplitudesBuffer();
 					break;
 				case 2: // упаковка данных - существенное уменьшение размера файла
 					//work->saveTheresholdLine();

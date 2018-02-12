@@ -109,8 +109,8 @@ namespace parus {
 		std::vector<short> re_, im_; // 13 бит со знаком
 		std::vector<double> abs_;
 
-		BYTE* ArrayToFile_;
-		size_t BytesCountToFile_;
+		BYTE* ArrayToFile_; // массив, подготовленный для сохранения
+		size_t BytesCountToFile_; // количество байт в массиве для сохранения
 	
 		void accumulate(BYTE* adc);
 		template<typename T>
@@ -149,49 +149,5 @@ namespace parus {
 		void prepareAmplitudes_IPG();
 	};
 	// =========================================================================
-
-	// Обработка строки, измеренной АЦП.
-	class lineADC
-	{
-		std::vector<int> _re, _im;
-		std::vector<double> _abs;
-		unsigned long *_buf; // указатель на копию аппаратного буфера
-		unsigned char *_buf_ionogram; // указатель на буфер строки ионограммы
-		unsigned long *_buf_amplitudes; // указатель на буфер строки амплитуд
-
-		size_t _real_buf_size; // размер буфера для сохранения результатов (уменьшаем размер выходного файла)
-		double zero_shift_re;
-		double zero_shift_im;
-
-		template<typename T>
-		double calculateZeroShift(const std::vector<T>& vec);
-
-		double calculateAbsThereshold(unsigned char* vec);
-
-	public:
-		lineADC(unsigned _height_count);
-		lineADC(BYTE *buf);
-		~lineADC();
-
-		void accumulate(BYTE *buf);
-		void average(unsigned pulse_count);
-		void setSavedSize(size_t size){_real_buf_size = size;}
-		const size_t getSavedSize(void){return _real_buf_size;}
-		const unsigned long* getBufer(void){return _buf;}
-		
-		void prepareIPG_IonogramBuffer(xml_ionogram* ionogram, const unsigned short curFrq);
-		void prepareIPG_QuadraturesBuffer(xml_amplitudes& amplitudes, const unsigned short curFrq, const unsigned short gain);
-		void prepareDirty_IonogramBuffer();
-		void prepareDirty_AmplitudesBuffer();
-
-		//template<typename T>
-		//Statistics calculateStatistics(const std::vector<T>& vec);
-
-		// get
-		short getShiftRe(){return static_cast<short>(zero_shift_re);}
-		short getShiftIm(){return static_cast<short>(zero_shift_im);}
-		char* returnIonogramBuffer(){return reinterpret_cast<char*>(_buf_ionogram);}
-		char* returnAmplitudesBuffer(){return reinterpret_cast<char*>(_buf_amplitudes);}
-	};
 
 } // namespace parus
