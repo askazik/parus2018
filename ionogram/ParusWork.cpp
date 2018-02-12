@@ -1,6 +1,6 @@
-// =============================================================================
+// ====================================================================================
 // Класс работы с аппаратурой
-// =============================================================================
+// ====================================================================================
 #include "ParusWork.h"
 
 namespace parus {
@@ -14,35 +14,30 @@ namespace parus {
 		_hFile(NULL),
 		_height_count(__COUNT_MAX__)
 	{	
-		// Открываем устройство, используя глобальные переменные.	
+		// Открываем устройство, используя глобальные переменные, установленные заранее.	
 		_DrvPars = initADC(_height_count);
 		_DAQ = DAQ_open(_DriverName.c_str(), &_DrvPars); // NULL 
 		if(!_DAQ)
 			throw std::runtime_error("Не открывается модуль сбора данных.");
 				
-		// =====================================================================
+		// =================================================================================================
 		// Выделение буферов для обработки сигнала.
-		// =====================================================================
-		// Запрос памяти для двух сырых 16-битных чередующихся каналов (из АЦП 
-		// получаем 32-разрядное слово на отсчёт).
-		buf_size = static_cast<unsigned long>
-			(_height_count * sizeof(unsigned long)); // размер буфера в байтах
+		// =================================================================================================
+		// Запрос памяти для двух сырых 16-битных чередующихся каналов (из АЦП получаем 32-разрядное слово на отсчёт).
+		buf_size = static_cast<unsigned long>(_height_count * sizeof(unsigned long)); // размер буфера строки в байтах
 		_fullBuf = new unsigned long [_height_count];
 
-		// =====================================================================
+		// =================================================================================================
 		// Выделение буфера для работы АЦП.
-		// =====================================================================
+		// =================================================================================================
 		// блоки TBLENTRY плотно упакованы вслед за нулевым из DAQ_ASYNCREQDATA
-		int ReqDataSize = sizeof(DAQ_ASYNCREQDATA); // используем один буфер!!!
+		int ReqDataSize = sizeof(DAQ_ASYNCREQDATA); // используем толко один буфер!!!
 		_ReqData = (DAQ_ASYNCREQDATA *)new char[ReqDataSize];
 	
 		// Подготовка к запросу буферов для АЦП.
 		_ReqData->BufCnt = 1; // используем только один буфер
-		// установим счётчик на нулевой TBLENTRY
-		TBLENTRY *pTbl = &_ReqData->Tbl[0];
-		// непрерывная область размера Tbl[i].Size запрашивается из 
-		// системной памяти
-		pTbl[0].Addr = NULL;
+		TBLENTRY *pTbl = &_ReqData->Tbl[0]; // установим счётчик на нулевой TBLENTRY
+		pTbl[0].Addr = NULL; // непрерывная область размера Tbl[i].Size запрашивается из системной памяти
 		pTbl[0].Size = buf_size;
 
 		// Request buffers of memory
@@ -52,13 +47,12 @@ namespace parus {
 
 		char *buffer = (char* )_ReqData->Tbl[0].Addr;
 		memset( buffer, 0, buf_size );
-		// =====================================================================
+		// =================================================================================================
 
 		// Настройка параметров асинхронного режима.
-		_xferData.UseIrq = 1;// 1 - использовать прерывания
-		_xferData.Dir = 1;	// Направление обмена (1 - ввод, 2 - вывод данных)
-		// Для непрерывной передачи данных по замкнутому циклу необходимо 
-		// установить автоинициализацию обмена.
+		_xferData.UseIrq = 1;	// 1 - использовать прерывания
+		_xferData.Dir = 1;		// Направление обмена (1 - ввод, 2 - вывод данных)
+		// Для непрерывной передачи данных по замкнутому циклу необходимо установить автоинициализацию обмена.
 		_xferData.AutoInit = 0;	// 1 - автоинициализация обмена
 		// Открываем LPT1 порт для записи через драйвер GiveIO.sys
 		initLPT1();
@@ -72,7 +66,7 @@ namespace parus {
 		_att = static_cast<char>(conf->getAttenuation());
 		_fsync = conf->getPulseFrq();
 		_pulse_duration = conf->getPulseDuration();
-		_height_count = conf->getHeightCount(); // количество высот
+		_height_count = conf->getHeightCount(); // количество высот (реально измеренных)
 		_height_min = 0; // начальная высота, м
 
 		// Задаём частоту дискретизации АЦП, Гц.
@@ -105,74 +99,55 @@ namespace parus {
 	M214x3M_DRVPARS parusWork::initADC(unsigned int count){
 		M214x3M_DRVPARS DrvPars;
     
-		// Устанавливаем значения по умолчанию для субмодуля ADM214x1M	
-		DrvPars.Pars = M214x3M_Params;
-		// Устанавливаем значения для базового модуля AMBPCI
-		DrvPars.Carrier.Pars = AMB_Params;
-		// размер буфера FIFO АЦП в 32-разрядных словах;
-		DrvPars.Carrier.Pars.AdcFifoSize = count; 
+		DrvPars.Pars = M214x3M_Params; // Устанавливаем значения по умолчанию для субмодуля ADM214x1M			
+		DrvPars.Carrier.Pars = AMB_Params; // Устанавливаем значения для базового модуля AMBPCI
+		DrvPars.Carrier.Pars.AdcFifoSize = count; // размер буфера FIFO АЦП в 32-разрядных словах;
 		// если ЦАП не установлен, то DacFifoSize должен быть равен 0,
 		// иначе тесты на асинхронный вывод приведут к зависанию компьютера
 		DrvPars.Carrier.Pars.DacFifoSize = 0; 
 
 		// Включаем по одному входу в обоих каналах.
-		// Если бит равен 1, то соответствующий вход включен, иначе - отключен.
-		DrvPars.Carrier.Pars.ChanMask = 257; 
+		DrvPars.Carrier.Pars.ChanMask = 257; // Если бит равен 1, то соответствующий вход включен, иначе - отключен.
 		DrvPars.Pars.Gain[0].OnOff = 1;
 		DrvPars.Pars.Gain[8].OnOff = 1;
 
 		// Установка регистра режимов стартовой синхронизации АЦП
-		// запуск по сигналу компаратора 0
-		DrvPars.Carrier.Pars.Start.Start = 1; 
-		// на компаратор 0 подается сигнал внешнего старта,
-		// на компаратор 1 подается сигнал с разъема X4
-		DrvPars.Carrier.Pars.Start.Src = 0;	
-		// 1 соответствует инверсии сигнала с выхода компаратора 0
-		DrvPars.Carrier.Pars.Start.Cmp0Inv = 1;	
-		// 1 соответствует инверсии сигнала с выхода компаратора 1
-		DrvPars.Carrier.Pars.Start.Cmp1Inv = 0;	
-		// 1 соответствует режиму претриггера
-		DrvPars.Carrier.Pars.Start.Pretrig = 0;	
-		// 1 соответствует триггерному режиму запуска/остановки АЦП
-		DrvPars.Carrier.Pars.Start.Trig.On = 1;	
-		// Режим остановки АЦП в триггерном режиме запуска:
-		// 0 - программная остановка
-		DrvPars.Carrier.Pars.Start.Trig.Stop = 0;
-		// Пороговые значения в Вольтах для компараторов 0 и 1
-		DrvPars.Carrier.Pars.Start.Thr[0] = 1; 
+		DrvPars.Carrier.Pars.Start.Start = 1; // запуск по сигналу компаратора 0
+		DrvPars.Carrier.Pars.Start.Src = 0;	// на компаратор 0 подается сигнал внешнего старта, на компаратор 1 подается сигнал с разъема X4
+		DrvPars.Carrier.Pars.Start.Cmp0Inv = 1;	// 1 соответствует инверсии сигнала с выхода компаратора 0
+		DrvPars.Carrier.Pars.Start.Cmp1Inv = 0;	// 1 соответствует инверсии сигнала с выхода компаратора 1
+		DrvPars.Carrier.Pars.Start.Pretrig = 0;	// 1 соответствует режиму претриггера
+		DrvPars.Carrier.Pars.Start.Trig.On = 1;	// 1 соответствует триггерному режиму запуска/остановки АЦП
+		DrvPars.Carrier.Pars.Start.Trig.Stop = 0;// Режим остановки АЦП в триггерном режиме запуска: 0 - программная остановка
+		DrvPars.Carrier.Pars.Start.Thr[0] = 1; // Пороговые значения в Вольтах для компараторов 0 и 1
 		DrvPars.Carrier.Pars.Start.Thr[1] = 1;
 
-		// Устанавливаем значения для Слоя Аппаратных Абстракций (HAL)
-		// VendorID, DeviceID, InstanceDevice, LatencyTimer
-		DrvPars.Carrier.HalPars = HAL_Params; 
+		DrvPars.Carrier.HalPars = HAL_Params; // Устанавливаем значения по умолчанию для Слоя Аппаратных Абстракций (HAL)
+											  // VendorID, DeviceID, InstanceDevice, LatencyTimer
 
-		// Используем старую версию PLD файла
-		strcpy_s(DrvPars.Carrier.PldFileName, _PLDFileName.c_str()); 
+		strcpy_s(DrvPars.Carrier.PldFileName, _PLDFileName.c_str()); // Используем старую версию  PLD файла
 
 		return DrvPars;
 	}
 
-	// Инициирует процесс обмена данными между устройством и областью выделенной
-	// памяти, после чего возвращает управление программе, вызвавшей данную
-	// функцию. При использовании прерываний перепрограммирование контроллера
-	// ПДП происходит по прерываниям. В противном случае используется
-	// периодический программный опрос статуса контроллера ПДП, в результате
-	// процесс непрерывной передачи данных существенно замедляется.
+	// Инициирует процесс обмена данными между устройством и областью выделенной памяти, 
+	// после чего возвращает управление программе, вызвавшей данную функцию.
+	// При использовании прерываний перепрограммирование контроллера ПДП происходит по прерываниям. 
+	// В противном случае используется периодический программный опрос статуса контроллера ПДП, 
+	// в результате процесс непрерывной передачи данных существенно замедляется.
 	void parusWork::ASYNC_TRANSFER(void){
 		DAQ_ioctl(_DAQ, DAQ_ioctlASYNC_TRANSFER, &_xferData);
 	}
 
 	// Служит для проверки завершения асинхронного ввода данных в буфер. 
-	// Функция возвращает ненулевое значение в случае завершения ввода,
-	// ноль – в противном случае
+	// Функция возвращает ненулевое значение в случае завершения ввода, ноль – в противном случае
 	int parusWork::READ_BUFISCOMPLETE(unsigned long msTimeout){
 		return DAQ_ioctl(_DAQ, DAQ_ioctlREAD_BUFISCOMPLETE, &msTimeout);
 	}
 
 	// Позволяет узнать текущее состояние процесса асинхронного ввода данных. 
-	// Функция возвращает номер текущего буфера (нумеруются с нуля), размер
-	// введенных в текущий буфер на момент запроса данных (в байтах), число
-	// произведенных автоинициализаций.
+	// Функция возвращает номер текущего буфера (нумеруются с нуля), размер введенных 
+	// в текущий буфер на момент запроса данных (в байтах), число произведенных автоинициализаций.
 	void parusWork::READ_GETIOSTATE(void){
 		DAQ_ioctl(_DAQ, DAQ_ioctlREAD_GETIOSTATE, &_curState);
 	}
@@ -180,15 +155,14 @@ namespace parus {
 	// Позволяет прервать процесс асинхронного ввода данных. 
 	// Функция возвращает номер текущего (на момент завершения процесса) 
 	// буфера (нумеруются с нуля), размер введенных в текущий буфер на момент 
-	// завершения процесса данных (в байтах), число произведенных
-	// автоинициализаций.
+	// завершения процесса данных (в байтах), число произведенных автоинициализаций.
 	void parusWork::READ_ABORTIO(void){
 		DAQ_ioctl(_DAQ, DAQ_ioctlREAD_ABORTIO, &_curState);
 	}
 
-	// Служит для проверки завершения ввода данных, инициированного функцией
-	// начала обмена данными (DAQ_ioctlASYNC_TRANSFER). Функция возвращает
-	// ненулевое значение в случае завершения ввода, ноль – в противном случае.
+	// Служит для проверки завершения ввода данных, инициированного функцией начала 
+	// обмена данными (DAQ_ioctlASYNC_TRANSFER). Функция возвращает ненулевое значение 
+	// в случае завершения ввода, ноль – в противном случае.
 	int parusWork::READ_ISCOMPLETE(unsigned long msTimeout){
 		return DAQ_ioctl(_DAQ, DAQ_ioctlREAD_ISCOMPLETE, &msTimeout);
 	}
@@ -217,8 +191,7 @@ namespace parus {
 	}
 
 	////	2.2.86	Получить смещение нуля (1022)
-	////Позволяет получить текущее смещение нуля для произвольного канала АЦП
-	// (половины входов).
+	////Позволяет получить текущее смещение нуля для произвольного канала АЦП (половины входов).
 	////Код управляющей функции:
 	////M214x3M_ioctlGETINPUTOSV = 1022
 	////Тип аргумента:
@@ -241,14 +214,12 @@ namespace parus {
 		return _RetStatus;
 	}
 
-	// Устанавливает смещение нуля (в диапазоне +/- 2.5 B) для произвольного
-	// канала АЦП (половины входов). 
+	// Устанавливает смещение нуля (в диапазоне +/- 2.5 B) для произвольного канала АЦП (половины входов). 
 	// Если Chan=0, то для входов 0-7. 
 	// Если Chan=1, то для входов 8-15.
 	int parusWork::SETINPUTOSV(M214x3M_ZEROSHIFTPARS _ZEROSHIFT)
 	{					
-		// Установим смещение нуля
-		_RetStatus = DAQ_ioctl(_DAQ, M214x3M_ioctlSETINPUTOSV, &_ZEROSHIFT); 
+		_RetStatus = DAQ_ioctl(_DAQ, M214x3M_ioctlSETINPUTOSV, &_ZEROSHIFT); // Установим смещение нуля
 		if(_RetStatus != ERROR_SUCCESS)
 			throw(DAQ_GetErrorMessage(_DAQ, _RetStatus));
 
@@ -290,8 +261,7 @@ namespace parus {
 		int				i;
 		double			step = 2.5;
 		unsigned int	fp = 63000, nf, r = 4;
-		unsigned int	s_gr[9] = 
-					{0, 3555, 8675, 13795, 18915, 24035, 29155, 34280, 39395};
+		unsigned int	s_gr[9] = {0, 3555, 8675, 13795, 18915, 24035, 29155, 34280, 39395};
 		int				Address=888;
 
 		_curFrq = curFrq;
@@ -341,19 +311,16 @@ namespace parus {
 	// nPulses -  количество импульсов генератора
 	// fsound - частота следования строк, Гц
 		double			fosc = 5e6;
-
-		// 50 Гц, 398 строк (Вообще-то 400 строк. 2 запасные?)
-		unsigned char	cdat[8] = {103, 159, 205, 218, 144, 1, 0, 0}; 
-
+		unsigned char	cdat[8] = {103, 159, 205, 218, 144, 1, 0, 0}; // 50 Гц, 398 строк (Вообще-то 400 строк. 2 запасные?)
 		unsigned int	pimp_n, nimp_n, lnumb;
 		unsigned long	NumberOfBytesWritten;
 	
 		lnumb = nPulses;
 
-		// =====================================================================
+		// ==========================================================================================
 		// Магические вычисления Геннадия Ивановича
-		pimp_n = (unsigned int)(fosc/(4.*(double)_fsync));//Циклов PIC на период	
-		nimp_n = 0x1000d - pimp_n;			// PIC_TMR1       Fimp_min = 19 Hz
+		pimp_n = (unsigned int)(fosc/(4.*(double)_fsync));		// Циклов PIC на период	
+		nimp_n = 0x1000d - pimp_n;								// PIC_TMR1       Fimp_min = 19 Hz
 		cdat[0] = nimp_n%256;
 		cdat[1] = nimp_n/256;
 		cdat[2] = 0xCD;
@@ -364,25 +331,24 @@ namespace parus {
 		cdat[7] = 0; // не используется
 
 		// Завершение магических вычислений (Частота следования не менее 19 Гц.)
-		// =====================================================================
+		// ==========================================================================================
  
 
-		// =====================================================================
+		// ==========================================================================================
 		// Запуск синхроимпульсов
-		// =====================================================================
+		// ==========================================================================================
 		// Передача параметров в кристалл PIC16F870
 		HANDLE	_COMPort = initCOM2();
 		BOOL fSuccess = WriteFile(
 			_COMPort,		// описатель сом порта
-			&cdat,// Указатель на буфер, с данными, которые будут записаны в файл. 
+			&cdat,		// Указатель на буфер, содержащий данные, которые будут записаны в файл. 
 			8,// Число байтов, которые будут записаны в файл.
-			&NumberOfBytesWritten,
+			&NumberOfBytesWritten,//  Указатель на переменную, которая получает число записанных байтов
 			NULL // Указатель на структуру OVERLAPPED
 		);
 		if (!fSuccess){
 			// Handle the error.
-			throw std::runtime_error
-				("Ошибка передачи параметров в кристалл PIC16F870.");
+			throw std::runtime_error("Ошибка передачи параметров в кристалл PIC16F870.");
 		}
 	
 		// Закрываем порт
@@ -448,8 +414,7 @@ namespace parus {
 							 FILE_ATTRIBUTE_NORMAL,
 							 NULL);
 		if (_LPTPort==INVALID_HANDLE_VALUE){
-			throw std::runtime_error
-			("Error! Can't open driver GIVEIO.SYS! Press any key to exit...");
+			throw std::runtime_error("Error! Can't open driver GIVEIO.SYS! Press any key to exit...");
 		}
 	}
 
@@ -467,8 +432,7 @@ namespace parus {
 		name << header.time_sound.tm_mon+1 << std::setw(2) 
 			<< header.time_sound.tm_mday << std::setw(2) 
 			<< header.time_sound.tm_hour << std::setw(2) 
-			<< header.time_sound.tm_min << std::setw(2) 
-			<< header.time_sound.tm_sec;
+			<< header.time_sound.tm_min << std::setw(2) << header.time_sound.tm_sec;
 		name << ".ion";
 
 		// Попытаемся открыть файл.
@@ -506,8 +470,7 @@ namespace parus {
 		name << header.time_sound.tm_mon+1 << std::setw(2) 
 			<< header.time_sound.tm_mday << std::setw(2) 
 			<< header.time_sound.tm_hour << std::setw(2) 
-			<< header.time_sound.tm_min << std::setw(2) 
-			<< header.time_sound.tm_sec;
+			<< header.time_sound.tm_min << std::setw(2) << header.time_sound.tm_sec;
 		name << ".frq";
 
 		// Попытаемся открыть файл.
@@ -526,16 +489,14 @@ namespace parus {
 		Retval = WriteFile(_hFile,	// писать в файл
 				  &header,			// адрес буфера: что писать
 				  sizeof(header),	// сколько писать
-				  &bytes,		// адрес DWORD'a: на выходе - сколько записано
+				  &bytes,			// адрес DWORD'a: на выходе - сколько записано
 				  0);				// A pointer to an OVERLAPPED structure.
-		
-		// последовательно пишем частоты зондирования
-		for(unsigned i=0; i<header.count_modules; i++){ 
+		for(unsigned i=0; i<header.count_modules; i++){ // последовательно пишем частоты зондирования
 			unsigned f = conf->getAmplitudesFrq(i);
 			Retval = WriteFile(_hFile,	// писать в файл
 				  &f,					// адрес буфера: что писать
 				  sizeof(f),			// сколько писать
-				  &bytes,		// адрес DWORD'a: на выходе - сколько записано
+				  &bytes,				// адрес DWORD'a: на выходе - сколько записано
 				  0);					// A pointer to an OVERLAPPED structure.
 		}
 		if (!Retval)
@@ -544,9 +505,8 @@ namespace parus {
 
 	void parusWork::saveFullData(void)
 	{
-		// В буффере АЦП сохранены два сырых 16-битных чередующихся канала на 
-		// одной частоте (count - количество 32-разрядных слов).
-		memcpy(_fullBuf, getBuffer(), getBufferSize()); // копируем буфер
+		// В буффере АЦП сохранены два сырых 16-битных чередующихся канала на одной частоте (count - количество 32-разрядных слов).
+		memcpy(_fullBuf, getBuffer(), getBufferSize()); // копируем весь аппаратный буфер
 
 		// Writing data from buffer into file (unsigned long = unsigned int)
 		BOOL	bErrorFlag = FALSE;
@@ -562,20 +522,17 @@ namespace parus {
 	}
 
 	// 2017-09-13
-	// Сохраняем строку данных с информацией об усилении приёмника и значении
-	// аттенюатора. Это необходимо для отстройки по ограничениям. Если есть
-	// ограничение сигнала, уменьшаем усиление на 3дБ для текущей частоты и
-	// перенастраиваем приемник.
+	// Сохраняем строку данных с информацией об усилении приёмника и значении аттенюатора.
+	// Это необходимо для отстройки по ограничениям.
+	// Если есть ограничение сигнала, уменьшаем усиление на 3дБ для текущей частоты и перенастраиваем приемник.
 	void parusWork::saveDataWithGain(void)
 	{
-		// В буффере АЦП сохранены два сырых 16-битных чередующихся канала на
-		// одной частоте (count - количество 32-разрядных слов).
-		// копируем весь аппаратный буфер
-		memcpy(_fullBuf, getBuffer(), getBufferSize()); 
+		// В буффере АЦП сохранены два сырых 16-битных чередующихся канала на одной частоте (count - количество 32-разрядных слов).
+		memcpy(_fullBuf, getBuffer(), getBufferSize()); // копируем весь аппаратный буфер
 
-		// ---------------------------------------------------------------------
+		// ------------------------------------------------------------------------------------------------------------------------
 		// 1. Блок сохранения данных. Ограниченных или нет - без разницы.
-		// ---------------------------------------------------------------------
+		// ------------------------------------------------------------------------------------------------------------------------
 		// Writing data from buffer into file (unsigned long = unsigned int)
 		BOOL	bErrorFlag = FALSE;
 		DWORD	dwBytesWritten = 0;	
@@ -604,40 +561,30 @@ namespace parus {
 
 		bErrorFlag = WriteFile( 
 			_hFile,				// open file handle
-			&cur_gain,// start of data to write - запись усиления приемника в дБ
+			&cur_gain,			// start of data to write - запись усиления приемника в дБ
 			1,					// number of bytes to write
 			&dwBytesWritten,	// number of bytes that were written
 			NULL);				// no overlapped structure
 		if (!bErrorFlag) 
-			throw std::runtime_error
-			("Не могу сохранить значение усиления приемника в файл.");
-		// ---------------------------------------------------------------------
+			throw std::runtime_error("Не могу сохранить значение усиления приемника в файл.");
+		// ------------------------------------------------------------------------------------------------------------------------
 		// 1. Конец блока сохранения данных.
-		// ---------------------------------------------------------------------
+		// ------------------------------------------------------------------------------------------------------------------------
 
-		// ---------------------------------------------------------------------
-		// 2. Блок оценки возможности ограничения. Уменьшение усиления при 
-		// выполнение условия. Учитывается только при последующих измерениях.
-		// ---------------------------------------------------------------------
-		// 2 байта на отсчет квадратуры, из которых 14 старших - значащие
-		short int *cur_ampl = (short int *)_fullBuf; 
-
-		// перебор по измеренным значениям амплитуд
-		for ( unsigned long i = 0; i < 2 * getBufferSize() / 
-			sizeof(unsigned long); i++ )  
-		{ 
-			if((cur_ampl[i] >> 2) > __AMPLITUDE_MAX__)
-			{ // реальный отсчёт амплитуды содержит 14 бит в старших разрядах
+		// ------------------------------------------------------------------------------------------------------------------------
+		// 2. Блок оценки возможности ограничения. Уменьшение усиления при выполнение условия. Учитывается только при последующих измерениях.
+		// ------------------------------------------------------------------------------------------------------------------------
+		short int *cur_ampl = (short int *)_fullBuf; // 2 байта на отсчет квадратуры, из которых 14 старших - значащие
+		for ( unsigned long i = 0; i < 2 * getBufferSize() / sizeof(unsigned long); i++ )  { // перебор по измеренным значениям амплитуд
+			if((cur_ampl[i] >> 2) > __AMPLITUDE_MAX__){ // реальный отсчёт амплитуды содержит 14 бит в старших разрядах
 				_g -= 6;
-				std::cout << 
-					"Уменьшение усиления приемника. Текущее усиление (относительно 46 дБ): "
-					<< _g << " дБ." << std::endl;
+				std::cout << "Уменьшение усиления приемника. Текущее усиление (относительно 46 дБ): " << _g << " дБ." << std::endl;
 				break;
 			}
 		}
-		// ---------------------------------------------------------------------
+		// ------------------------------------------------------------------------------------------------------------------------
 		// 2. Конец блока оценки возможности ограничения.
-		// ---------------------------------------------------------------------
+		// ------------------------------------------------------------------------------------------------------------------------
 	}
 
 	void parusWork::closeOutputFile(void)
@@ -652,8 +599,7 @@ namespace parus {
 	// conf - кофигурация зондирования
 	// numModule - номер модуля зондирования
 	// curFrq - частота зондирования, кГц
-	void parusWork::saveLine(char* buf, const size_t byte_counts,
-		const unsigned int curFrq)
+	void parusWork::saveLine(BYTE* buf, const size_t byte_counts, const unsigned int curFrq)
 	{
 		// Writing data from buffers into file (unsigned long = unsigned int)
 		BOOL	bErrorFlag = FALSE;
@@ -667,8 +613,7 @@ namespace parus {
 		if (!bErrorFlag)
 		{
 			std::stringstream ss;
-			ss << "Не могу сохранить строку ионограммы в файл. Частота = "
-				<< curFrq << "кГц." << std::endl;
+			ss << "Не могу сохранить строку ионограммы в файл. Частота = " << curFrq << "кГц." << std::endl;
 			throw std::runtime_error(ss.str());
 		}
 	}
@@ -691,47 +636,37 @@ namespace parus {
 
 		bErrorFlag = WriteFile( 
 			_hFile,				// open file handle
-			&cur_gain,// start of data to write - запись усиления приемника в дБ
+			&cur_gain,			// start of data to write - запись усиления приемника в дБ
 			1,					// number of bytes to write
 			&dwBytesWritten,	// number of bytes that were written
 			NULL);				// no overlapped structure
 		if (!bErrorFlag) 
-			throw std::runtime_error
-			("Не могу сохранить значение усиления приемника в файл.");
+			throw std::runtime_error("Не могу сохранить значение усиления приемника в файл.");
 	}
 
 	int parusWork::ionogram(xml_unit* conf)
 	{
 		xml_ionogram* ionogram = (xml_ionogram*)conf;
-		DWORD msTimeout = 25;
+
+		unsigned pfrq = ionogram->getPulseFrq(); // Hz
+		DWORD msTimeout = static_cast<short>(1000./pfrq) - 5; // ms
+
 		unsigned short curFrq; // текущая частота зондирования, кГц
 		int counter; // число импульсов от генератора
-		
-		// Смещение нуля для всего измерения
-		double ZERO_RE = 0;
-		double ZERO_IM = 0;
 
 		curFrq = ionogram->getModule(0)._map.at("fbeg");
 		unsigned fstep = ionogram->getModule(0)._map.at("fstep");
-
-		// требуемое число импульсов от генератора
-		counter = ionogram->getFrequenciesCount() * ionogram->getPulseCount(); 
-
+		counter = ionogram->getFrequenciesCount() * ionogram->getPulseCount(); // требуемое число импульсов от генератора
 		startGenerator(counter+1); // Запуск генератора импульсов.
 
 		while(counter) // обрабатываем импульсы генератора
 		{
-			// смещения нуля для текущей частоты
-			double zero_re = 0;
-			double zero_im = 0;
-			
 			adjustSounding(curFrq);
 
 			CBuffer buffer;
 			buffer.setSavedSize(ionogram->getHeightCount());
 
-			// счётчик циклов суммирования на одной частоте
-			for (unsigned k = 0; k < ionogram->getPulseCount(); k++) 
+			for (unsigned k = 0; k < ionogram->getPulseCount(); k++) // счётчик циклов суммирования на одной частоте
 			{
 				ASYNC_TRANSFER(); // запустим АЦП
 				
@@ -746,22 +681,15 @@ namespace parus {
 				{
 					// Накапливаем результат
 					buffer += getBuffer();
-					CPoint zero_pt = buffer.getZeroShift();
-					zero_re += zero_pt.re;
-					zero_im += zero_pt.im;
 				}
-				// Отлавливаем здесь только ошибки ограничения амплитуды.
-				catch(CADCOverflowException &e) 
+				catch(CADCOverflowException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
 				{
 					// 1. Запись в журнал
 					std::stringstream ss;
-					ss << curFrq << '\t' << e.getHeightNumber() * 
-						ionogram->getHeightStep()  << '\t' 
-						<< std::boolalpha << e.getOverflowRe() <<  '\t'
-						<< e.getOverflowIm();
+					ss << curFrq << '\t' << e.getHeightNumber() * ionogram->getHeightStep()  << '\t' 
+						<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
 					_log.push_back(ss.str());
-					// 2. Уменьшение усиления сигнала (выполняется для
-					// последующей настройки <adjustSounding> частоты зондирования)
+					// 2. Уменьшение усиления сигнала (выполняется для последующей настройки <adjustSounding> частоты зондирования)
 					_g--; // уменьшаем усиление на 6 дБ (вдвое по амплитуде)
 					adjustSounding(curFrq);
 				}
@@ -769,16 +697,8 @@ namespace parus {
 			}
 			// усредним по количеству импульсов зондирования на одной частоте
 			if(ionogram->getPulseCount() > 1)
-			{
 				buffer /= ionogram->getPulseCount();
-				ZERO_RE += zero_re / ionogram->getPulseCount();
-				ZERO_IM += zero_im / ionogram->getPulseCount();
-			}
-			else
-			{
-				ZERO_RE += zero_re;
-				ZERO_IM += zero_im;
-			}
+
 			// Сохранение линии в файле.
 			switch(ionogram->getVersion()) // подготовка массива char
 			{
@@ -796,26 +716,10 @@ namespace parus {
 				break;
 			}
 			// Сохранение линии в файл.
-			saveLine(buffer.getBytesArrayToFile(),buffer.getSavedSize(),curFrq);
+			saveLine(buffer.getBytesArrayToFile(), buffer.getBytesCountToFile(), curFrq);
 
 			curFrq += fstep; // следующая частота зондирования
 		}
-
-		// Среднее смещение нуля по всем частотам и импульсам.
-		ZERO_RE /= ionogram->getFrequenciesCount();
-		ZERO_IM /= ionogram->getFrequenciesCount();
-		
-		// Изменение смещения нуля для АЦП.
-		std::vector<double> zero_shift;
-		zero_shift.push_back(ZERO_RE);
-		zero_shift.push_back(ZERO_IM);
-		adjustZeroShift(zero_shift);
-		
-		// Запись в журнал информации о смещении нуля
-		std::stringstream ss;
-		ss << "Смещение нуля до коррекции: "
-			<< ZERO_RE << " (Re), "	<< ZERO_IM << " (Im).";
-		_log.push_back(ss.str());
 
 		// Сохраним информацию о наступлении ограничения сигнала
 		std::vector<std::string> log = getLog();
@@ -823,14 +727,29 @@ namespace parus {
 		std::ostream_iterator<std::string> output_iterator(output_file, "\n");
 		std::copy(log.begin(), log.end(), output_iterator);
 
+		//double mean_re = 0; 
+		//double mean_im = 0;
+		//for(size_t ii=0; ii<ionogram->getFrequenciesCount(); ii++)
+		//{
+		//	std::cout << "Zero_Re = " << zero_re[ii] << "\tZero_Im = " << zero_im[ii] << std::endl;
+		//	mean_re += zero_re[ii];
+		//	mean_im += zero_im[ii];
+		//}
+		//mean_re /= ionogram->getFrequenciesCount();
+		//mean_im /= ionogram->getFrequenciesCount();
+		//std::cout << "------" << std::endl;
+		//std::cout << "MeanZero_Re = " << mean_re << "\tMeanZero_Im = " << mean_im << std::endl;
+
+		//delete [] zero_re;
+		//delete [] zero_im;
+
 		return _RetStatus;
 	}
 
 	/// <summary>
 	/// Настройка смещения нуля для обоих каналов.
 	/// </summary>
-	/// <param name="zero_shift">Смещение нуля нулевого и первого каналов,
-	/// занесённые в вектор std::vector<double>.</param>
+	/// <param name="zero_shift">Смещение нуля нулевого и первого каналов, занесённые в вектор std::vector<double>.</param>
 	void parusWork::adjustZeroShift(std::vector<double> zero_shift)
 	{
 		M214x3M_ZEROSHIFTPARS _ZEROSHIFT;
@@ -844,10 +763,8 @@ namespace parus {
 			// Изменение при несовпадении
 			if(_ZEROSHIFT.Value != zero_shift.at(kk))
 			{
-				// Для коэффициента усиления АЦП = 1, при шкале +/- 2.5 В, шаг
-				// квантования примерно 0.305 мВ (2.5 / 8191 Вольт).
-				// 13 бит по абсолютному значению
-				float value = static_cast<float>(zero_shift.at(kk) * 2.5 / 8191);
+				// Для коэффициента усиления АЦП = 1, при шкале +/- 2.5 В, шаг квантования примерно 0.305 мВ (2.5 / 8191 Вольт).
+				float value = static_cast<float>(zero_shift.at(kk) * 2.5 / 8191); // 13 бит по абсолютному значению
 
 				_ZEROSHIFT.Value = -value; // смещаем в обратном направлении
 				SETINPUTOSV(_ZEROSHIFT);
@@ -864,21 +781,20 @@ namespace parus {
 	int parusWork::amplitudes(xml_unit* conf, unsigned dt)
 	{
 		xml_amplitudes* amplitudes = (xml_amplitudes*)conf;
-		DWORD msTimeout = 25;
+		
+		unsigned pfrq = amplitudes->getPulseFrq(); // Hz
+		DWORD msTimeout = static_cast<short>(1000./pfrq) - 3; // ms
+
 		unsigned short curFrq, numFrq = 0; // номер текущей частоты зондирования
 		int counter; // число импульсов от генератора
-		
-		// вектор усилений для частот зондирования
-		std::vector<unsigned int> G(amplitudes->getModulesCount(), _g); 
+		std::vector<unsigned int> G(amplitudes->getModulesCount(), _g); // вектор усилений для частот зондирования
 
-		// требуемое число импульсов от генератора
-		counter = dt * amplitudes->getPulseFrq(); 
+		counter = dt * amplitudes->getPulseFrq(); // требуемое число импульсов от генератора
 		startGenerator(counter+1); // Запуск генератора импульсов.
 
 		while(counter) // обрабатываем импульсы генератора
 		{
-			// заданная частота зондирования
-			curFrq = amplitudes->getAmplitudesFrq(numFrq); 
+			curFrq = amplitudes->getAmplitudesFrq(numFrq); // заданная частота зондирования
 			_g = G.at(numFrq); // усиление для заданной частоты зондирования
 			adjustSounding(curFrq);
 
@@ -897,21 +813,15 @@ namespace parus {
 			{
 				line.accumulate(getBuffer());
 			}
-			// Отлавливаем здесь только ошибки ограничения амплитуды.
-			catch(CADCOverflowException &e) 
+			catch(CADCOverflowException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
 			{
 				// 1. Запись в журнал
 				std::stringstream ss;
-				ss << curFrq << '\t' << e.getHeightNumber() * 
-					amplitudes->getHeightStep()  << '\t' 
-					<< std::boolalpha << e.getOverflowRe() <<  '\t'
-					<< e.getOverflowIm();
+				ss << curFrq << '\t' << e.getHeightNumber() * amplitudes->getHeightStep()  << '\t' 
+					<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
 				_log.push_back(ss.str());
-				// 2. Уменьшение усиления сигнала (выполняется для последующей
-				// настройки частоты зондирования)
-				// уменьшаем усиление на 6 дБ (вдвое по амплитуде) для
-				// следующего импульса на частоте
-				G.at(numFrq) = G.at(numFrq) - 1; 
+				// 2. Уменьшение усиления сигнала (выполняется для последующей настройки частоты зондирования)
+				G.at(numFrq) = G.at(numFrq) - 1; // уменьшаем усиление на 6 дБ (вдвое по амплитуде) для следующего импульса на частоте
 			}
 
 			// Сохранение линии в файле.
@@ -923,18 +833,14 @@ namespace parus {
 				case 1: // без упаковки данных (as is) и информации об усилении
 					line.prepareDirty_AmplitudesBuffer();
 					break;
-				case 2: 
-					// упаковка данных - существенное уменьшение размера файла
+				case 2: // упаковка данных - существенное уменьшение размера файла
 					//work->saveTheresholdLine();
 					break;
-				case 3: 
-					// обработка возможного ограничения сигнала для каждой
-					// частоты зондирования
+				case 3: // обработка возможного ограничения сигнала для каждой частоты зондирования
 					//work->saveDataWithGain();
 					break;
 			}
-			// Сохранение линии в файл.
-			saveLine(line.returnAmplitudesBuffer(), line.getSavedSize(), curFrq); 
+			//saveLine(line.returnAmplitudesBuffer(), line.getSavedSize(), curFrq); // Сохранение линии в файл.
 			saveGain(); // сохранение в файл усиления приемника на текущей частоте
 
 			counter--; // приступаем к обработке следующего импульса

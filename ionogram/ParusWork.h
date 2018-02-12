@@ -64,7 +64,7 @@ namespace parus {
 		HANDLE initCOM2(void);
 		void initLPT1(void);
 
-		void saveLine(char* buf, const size_t byte_counts, const unsigned int curFrq); // сохранение линии в файле
+		void saveLine(BYTE* buf, const size_t byte_counts, const unsigned int curFrq); // сохранение линии в файле
 		void saveGain(); // сохранение информации об усилении приёмника
 		
 		void saveFullData(void);

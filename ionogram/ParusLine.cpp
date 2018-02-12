@@ -433,13 +433,13 @@ namespace parus {
 	{
 		double tmp;
 
-		int n = vec.size();
-		std::vector<short> top_half(n/2,0);
-		top_half.insert(top_half.begin(),vec.begin()+(n/2-1),vec.end()); 
+		int n = vec.size()/2;
+		std::vector<short> top_half;
+		top_half.insert(top_half.begin(),vec.begin()+n,vec.end()); 
 
 		// Сортируем по возрастанию и определяем медиану.
 		sort(top_half.begin(), top_half.end());
-		tmp = (top_half.at(n/2),top_half.at(n/2-1))/2.;
+		tmp = (top_half.at(n/2) + top_half.at(n/2-1))/2.;
 
 		return tmp;
 	}
@@ -480,7 +480,7 @@ namespace parus {
 	}
 
 	/// <summary>
-	/// Подготовка черновой ионограммы для записи в файл.
+	/// Подготовка черновой ионограммы без усечения данных для записи в файл.
 	/// Заполнение private свойств:
 	/// BYTE* ArrayToFile_;
 	/// size_t BytesCountToFile_;
@@ -491,14 +491,17 @@ namespace parus {
 		if(ArrayToFile_)
 			delete [] ArrayToFile_;
 
-		BytesCountToFile_ = getSavedSize();
-		unsigned char *dataLine = new unsigned char [BytesCountToFile_];
+		unsigned short *dataLine = new unsigned short [getSavedSize()];
 
 		// Усечение данных до размера 8 бит.
 		for(size_t i = 0; i < getSavedSize(); i++) 
-			dataLine[i] = static_cast<unsigned char>(static_cast<unsigned short>(abs_.at(i)) >> 6);
+			dataLine[i] = static_cast<unsigned short>(abs_.at(i));
+		BytesCountToFile_ = 2 * getSavedSize(); // записываем short числа
 
-		ArrayToFile_ = static_cast<BYTE *>(dataLine);
+		ArrayToFile_ = new BYTE [BytesCountToFile_];
+		memcpy(ArrayToFile_, reinterpret_cast<BYTE*>(dataLine), BytesCountToFile_);
+
+		delete [] dataLine;
 	}
 
 	/// <summary>
@@ -511,6 +514,7 @@ namespace parus {
 	/// <param name="curFrq">const unsigned short - текущая частота зондирования, кГц.</param>
 	void CBuffer::prepareIonogram_IPG(const xml_ionogram& ionogram, const unsigned short curFrq)
 	{
+		try{
 		// Неизменяемые данные по текущей частоте
 		FrequencyData tmpFrequencyData;
 		tmpFrequencyData.gain_control = static_cast<unsigned short>(ionogram.getGain());// !< Значение ослабления входного аттенюатора дБ.
@@ -519,18 +523,28 @@ namespace parus {
 		tmpFrequencyData.band = static_cast<unsigned char>(floor(1000000./ionogram.getPulseDuration()));//!< Полоса сигнала, [кГц].
 		tmpFrequencyData.type = 0;														//!< Вид модуляции (0 - гладкий импульс, 1 - ФКМ).
 
-		// Выделим буфер под упакованную строку. Считаем, что упакованная строка не больше исходной.
-		unsigned n = getSavedSize();
-		unsigned char *tmpArray = new unsigned char [n];
-		unsigned char *tmpLine = new unsigned char [n];
-		unsigned char *tmpAmplitude = new unsigned char [n];
-  
 		unsigned j;
-		unsigned char *dataLine = new unsigned char [n];
+		unsigned n = getSavedSize();
+		unsigned char *tmpArray;
+		unsigned char *tmpLine;
+		unsigned char *tmpAmplitude;
+		unsigned char *dataLine;
+
+		// Выделим буфер под упакованную строку. Считаем, что упакованная строка не больше исходной.
+		try{
+		tmpArray = new unsigned char [n];
+		tmpLine = new unsigned char [n];
+		tmpAmplitude = new unsigned char [n];
+		dataLine = new unsigned char [n];
+						}
+				catch(const std::bad_alloc& e) // Отлавливаем здесь только ошибки ограничения амплитуды.
+				{
+					std::cout << e.what();
+				}
 
 		// Усечение данных до размера 8 бит.
 		for(unsigned i = 0; i < n; i++) 
-			dataLine[i] = static_cast<unsigned char>(static_cast<unsigned short>(abs_.at(i)) >> 6);
+			dataLine[i] = static_cast<unsigned char>(abs_.at(i)/64);
 
 		SignalResponse tmpSignalResponse;
 		unsigned char countOutliers;
@@ -548,6 +562,7 @@ namespace parus {
 		unsigned short countLine = 0; // количество байт в упакованной строке
 		countOutliers = 0; // счетчик количества выбросов в текущей строке
 		j = 0;
+
 		while(j < n) // Находим выбросы
 		{
 			if(dataLine[j] > thereshold) // Выброс найден - обрабатываем его.
@@ -593,13 +608,19 @@ namespace parus {
 			delete [] ArrayToFile_;
 		// Заполним хранилище данными.
 		BytesCountToFile_ = countLine + nFrequencyData;
-		dataLine = new unsigned char [BytesCountToFile_];
+		ArrayToFile_ = new BYTE [BytesCountToFile_];
 		memcpy(ArrayToFile_, reinterpret_cast<BYTE*>(tmpArray), BytesCountToFile_);
 
 		delete [] tmpLine;
 		delete [] tmpAmplitude;
 		delete [] tmpArray;
 		delete [] dataLine;
+
+								}
+				catch(const std::bad_alloc& e) // Отлавливаем здесь только ошибки ограничения амплитуды.
+				{
+					std::cout << e.what();
+				}
 	}
 
 	void CBuffer::prepareAmplitudes_Dirty()
