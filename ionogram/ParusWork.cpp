@@ -672,7 +672,16 @@ namespace parus {
 				
 				// Цикл проверки до появления результатов в буфере.
 				// READ_BUFISCOMPLETE - сбоит на частоте 47 Гц
-				while(READ_ISCOMPLETE(msTimeout) == NULL);
+				// Реализуем задержку и выход по процессорным часам.
+				clock_t end, start = clock();
+				double ms = 0;
+				int ii = 0;
+				long cps = CLOCKS_PER_SEC;
+				while(READ_ISCOMPLETE(msTimeout) == NULL || ms < msTimeout)
+				{
+					end = clock();
+					ms = 1000 * ((double)end - start) / cps; // ms
+				}
 
 				// Остановим АЦП
 				READ_ABORTIO();					
@@ -727,22 +736,6 @@ namespace parus {
 		std::ostream_iterator<std::string> output_iterator(output_file, "\n");
 		std::copy(log.begin(), log.end(), output_iterator);
 
-		//double mean_re = 0; 
-		//double mean_im = 0;
-		//for(size_t ii=0; ii<ionogram->getFrequenciesCount(); ii++)
-		//{
-		//	std::cout << "Zero_Re = " << zero_re[ii] << "\tZero_Im = " << zero_im[ii] << std::endl;
-		//	mean_re += zero_re[ii];
-		//	mean_im += zero_im[ii];
-		//}
-		//mean_re /= ionogram->getFrequenciesCount();
-		//mean_im /= ionogram->getFrequenciesCount();
-		//std::cout << "------" << std::endl;
-		//std::cout << "MeanZero_Re = " << mean_re << "\tMeanZero_Im = " << mean_im << std::endl;
-
-		//delete [] zero_re;
-		//delete [] zero_im;
-
 		return _RetStatus;
 	}
 
@@ -783,11 +776,10 @@ namespace parus {
 		xml_amplitudes* amplitudes = (xml_amplitudes*)conf;
 		
 		unsigned pfrq = amplitudes->getPulseFrq(); // Hz
-		DWORD msTimeout = static_cast<short>(1000./pfrq) - 3; // ms
+		DWORD msTimeout = static_cast<short>(1000./pfrq) - 5; // ms
 
 		unsigned short curFrq, numFrq = 0; // номер текущей частоты зондирования
 		int counter; // число импульсов от генератора
-		std::vector<unsigned int> G(amplitudes->getModulesCount(), _g); // вектор усилений для частот зондирования
 
 		counter = dt * amplitudes->getPulseFrq(); // требуемое число импульсов от генератора
 		startGenerator(counter+1); // Запуск генератора импульсов.
@@ -795,34 +787,49 @@ namespace parus {
 		while(counter) // обрабатываем импульсы генератора
 		{
 			curFrq = amplitudes->getAmplitudesFrq(numFrq); // заданная частота зондирования
-			_g = G.at(numFrq); // усиление для заданной частоты зондирования
 			adjustSounding(curFrq);
 
-			//lineADC line(amplitudes->getHeightCount());
+			CBuffer buffer;
+			buffer.setSavedSize(amplitudes->getHeightCount());
 
-			//ASYNC_TRANSFER(); // запустим АЦП
-			//	
-			//// Цикл проверки до появления результатов в буфере.
-			//// READ_BUFISCOMPLETE - сбоит на частоте 47 Гц
-			//while(READ_ISCOMPLETE(msTimeout) == NULL);
+			for (unsigned k = 0; k < amplitudes->getPulseCount(); k++) // счётчик циклов суммирования на одной частоте
+			{
+				ASYNC_TRANSFER(); // запустим АЦП
+				
+				// Цикл проверки до появления результатов в буфере.
+				// READ_BUFISCOMPLETE - сбоит на частоте 47 Гц
+				// Реализуем задержку и выход по процессорным часам.
+				clock_t end, start = clock();
+				double ms = 0;
+				int ii = 0;
+				long cps = CLOCKS_PER_SEC;
+				while(READ_ISCOMPLETE(msTimeout) == NULL || ms < msTimeout)
+				{
+					end = clock();
+					ms = 1000 * ((double)end - start) / cps; // ms
+				}
 
-			//// Остановим АЦП
-			//READ_ABORTIO();					
+				// Остановим АЦП
+				READ_ABORTIO();					
 
-			//try
-			//{
-			//	line.accumulate(getBuffer());
-			//}
-			//catch(CADCOverflowException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
-			//{
-			//	// 1. Запись в журнал
-			//	std::stringstream ss;
-			//	ss << curFrq << '\t' << e.getHeightNumber() * amplitudes->getHeightStep()  << '\t' 
-			//		<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
-			//	_log.push_back(ss.str());
-			//	// 2. Уменьшение усиления сигнала (выполняется для последующей настройки частоты зондирования)
-			//	G.at(numFrq) = G.at(numFrq) - 1; // уменьшаем усиление на 6 дБ (вдвое по амплитуде) для следующего импульса на частоте
-			//}
+				try
+				{
+					// Накапливаем результат
+					buffer += getBuffer();
+				}
+				catch(CADCOverflowException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
+				{
+					// 1. Запись в журнал
+					std::stringstream ss;
+					ss << curFrq << '\t' << e.getHeightNumber() * amplitudes->getHeightStep()  << '\t' 
+						<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
+					_log.push_back(ss.str());
+					// 2. Уменьшение усиления сигнала (выполняется для последующей настройки <adjustSounding> частоты зондирования)
+					_g--; // уменьшаем усиление на 6 дБ (вдвое по амплитуде)
+					adjustSounding(curFrq);
+				}
+				counter--; // приступаем к обработке следующего импульса
+			}
 
 			// Сохранение линии в файле.
 			switch(amplitudes->getVersion())
@@ -831,24 +838,24 @@ namespace parus {
 					//work->saveDirtyLine();
 					break;
 				case 1: // без упаковки данных (as is) и информации об усилении
-					//line.prepareDirty_AmplitudesBuffer();
+					buffer.prepareAmplitudes_Dirty(curFrq);
 					break;
 				case 2: // упаковка данных - существенное уменьшение размера файла
 					//work->saveTheresholdLine();
 					break;
-				case 3: // обработка возможного ограничения сигнала для каждой частоты зондирования
-					//work->saveDataWithGain();
-					break;
 			}
-			//saveLine(line.returnAmplitudesBuffer(), line.getSavedSize(), curFrq); // Сохранение линии в файл.
-			saveGain(); // сохранение в файл усиления приемника на текущей частоте
+			// Сохранение линии в файл.
+			saveLine(buffer.getBytesArrayToFile(), buffer.getBytesCountToFile(), curFrq);
 
-			counter--; // приступаем к обработке следующего импульса
-			
-			numFrq++; // смена частоты зондирования
-			if(numFrq == amplitudes->getModulesCount()) 
-				numFrq = 0;
+			// следующая частота зондирования
+			numFrq = (numFrq == amplitudes->getModulesCount()) ? 0 : numFrq++; 
 		}
+
+		// Сохраним информацию о наступлении ограничения сигнала
+		std::vector<std::string> log = getLog();
+		std::ofstream output_file("parus.log");
+		std::ostream_iterator<std::string> output_iterator(output_file, "\n");
+		std::copy(log.begin(), log.end(), output_iterator);
 
 		return _RetStatus;
 	}

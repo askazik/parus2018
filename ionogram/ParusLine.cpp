@@ -353,9 +353,35 @@ namespace parus {
 				//}
 	}
 
-	void CBuffer::prepareAmplitudes_Dirty()
+	void CBuffer::prepareAmplitudes_Dirty(unsigned short curFrq)
 	{
+		// ѕроверим на существование и уничтожим, если распредел€лс€.
+		if(ArrayToFile_ != nullptr)
+		{
+			delete [] ArrayToFile_;
+			ArrayToFile_ = nullptr;
+		}
 
+		// Ќулева€ точка - частота зондировани€.
+		// „астота зондировани€ + две квадратуры. 
+		int n = 2 * getSavedSize() + 1;
+		BytesCountToFile_ = n * sizeof(short);
+		short *dataLine = new short [n];
+
+		// ”сечение данных до размера 8 бит.
+		dataLine[0] = curFrq;
+		size_t j = 0;
+		for(size_t i = 1; i <= 2*getSavedSize(); i += 2) 
+		{
+			dataLine[i] = re_.at(j);
+			dataLine[i+1] = im_.at(j);
+			j++;
+		}
+
+		ArrayToFile_ = new BYTE [BytesCountToFile_];
+		memcpy(ArrayToFile_, reinterpret_cast<BYTE*>(dataLine), BytesCountToFile_);
+
+		delete [] dataLine;
 	}
 
 	void CBuffer::prepareAmplitudes_IPG()
