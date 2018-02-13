@@ -22,18 +22,6 @@ int main(void)
 	std::cout << "»спользуем конфигурационный файл: <" << project.getFileName() << ">." << "\n\n";
 	unsigned dt = project.getModule(1)._map.at("dt");
 
-	std::cout << "ѕараметры ионограммы: " << std::endl;
-	std::cout << "„астоты: " << _header.freq_min << " к√ц - " << _header.freq_max 
-				<< " к√ц, усиление = " << ionogram.getGain() 
-				<< " дЅ, аттенюатор = " << ionogram.getAttenuation() << " выкл(0)/вкл(1)." << "\n\n";
-
-	std::cout << "ѕараметры амплитудных измерений: " << std::endl;
-	std::cout << "”силение = " << amplitudes.getGain() 
-				<< " дЅ, аттенюатор = " << amplitudes.getAttenuation() << " выкл(0)/вкл(1)." << std::endl;
-	for(size_t i = 0; i < amplitudes.getModulesCount(); i++)
-		std::cout << amplitudes.getAmplitudesFrq(i) << " к√ц" << std::endl;
-	std::cout << "¬рем€ измерени€ амплитуд: " << dt << " с.\n";
-
     // ===========================================================================================
     // 2.  онфигурирование и исполнение сеанса.
     // ===========================================================================================
@@ -59,12 +47,30 @@ int main(void)
 			case MEASUREMENT: // пропускаем т.к. отсутствует реальное измерение
 				break;
 			case IONOGRAM:
+				// «аголовок
+				std::cout << "ѕараметры ионограммы: " << std::endl;
+				std::cout << "„астоты: " << _header.freq_min << " к√ц - " 
+					<< _header.freq_max << " к√ц, усиление = " 
+					<< ionogram.getGain() << " дЅ, аттенюатор = " 
+					<< ionogram.getAttenuation() << " выкл(0)/вкл(1)." << "\n\n";
+
 				work->setup(&ionogram);
 				work->openIonogramFile(&ionogram);
 				RetStatus = work->ionogram(&ionogram);
 				work->closeOutputFile();
+				Beep( 500, 600 );
 				break;
 			case AMPLITUDES:
+				// «аголовок
+				std::cout << "ѕараметры амплитудных измерений: " << std::endl;
+				std::cout << "”силение = " << amplitudes.getGain() 
+					<< " дЅ, аттенюатор = " << amplitudes.getAttenuation() 
+					<< " выкл(0)/вкл(1)." << std::endl;
+				for(size_t i = 0; i < amplitudes.getModulesCount(); i++)
+					std::cout << amplitudes.getAmplitudesFrq(i) 
+					<< " к√ц" << std::endl;
+				std::cout << "¬рем€ измерени€ амплитуд: " << dt << " с.\n";
+
 				work->setup(&amplitudes);
 				work->openDataFile(&amplitudes);
 				RetStatus = work->amplitudes(&amplitudes,dt);

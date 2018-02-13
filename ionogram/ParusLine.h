@@ -145,7 +145,7 @@ namespace parus {
 
 		void prepareIonogram_Dirty();
 		void prepareIonogram_IPG(const xml_ionogram& ionogram, const unsigned short curFrq);
-		void prepareAmplitudes_Dirty(unsigned short curFrq);
+		void prepareAmplitudes_Dirty(unsigned char cur_Gain);
 		void prepareAmplitudes_IPG();
 	};
 	// =========================================================================

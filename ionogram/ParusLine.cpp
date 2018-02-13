@@ -353,7 +353,7 @@ namespace parus {
 				//}
 	}
 
-	void CBuffer::prepareAmplitudes_Dirty(unsigned short curFrq)
+	void CBuffer::prepareAmplitudes_Dirty(unsigned char cur_Gain)
 	{
 		// Проверим на существование и уничтожим, если распределялся.
 		if(ArrayToFile_ != nullptr)
@@ -362,21 +362,21 @@ namespace parus {
 			ArrayToFile_ = nullptr;
 		}
 
-		// Нулевая точка - частота зондирования.
-		// Частота зондирования + две квадратуры. 
-		int n = 2 * getSavedSize() + 1;
-		BytesCountToFile_ = n * sizeof(short);
-		short *dataLine = new short [n];
+		// Две квадратуры. 
+		int n = 2 * getSavedSize();
+		BytesCountToFile_ = n * sizeof(short) + sizeof(short);
+		short *dataLine = new short [n + 1];
 
 		// Усечение данных до размера 8 бит.
-		dataLine[0] = curFrq;
-		size_t j = 0;
-		for(size_t i = 1; i <= 2*getSavedSize(); i += 2) 
+		int j = 0;
+		int i;
+		for(i = 0; i < n; i += 2)
 		{
 			dataLine[i] = re_.at(j);
 			dataLine[i+1] = im_.at(j);
 			j++;
 		}
+		dataLine[i] = cur_Gain; // последний отсчёт массива
 
 		ArrayToFile_ = new BYTE [BytesCountToFile_];
 		memcpy(ArrayToFile_, reinterpret_cast<BYTE*>(dataLine), BytesCountToFile_);

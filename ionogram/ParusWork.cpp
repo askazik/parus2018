@@ -60,7 +60,10 @@ namespace parus {
 
 	void parusWork::setup(xml_unit* conf)
 	{
-		_g = conf->getGain()/6;	// ??? 6дБ = приращение в 4 раза по мощности
+		// ??? 6дБ = приращение в 4 раза по мощности
+		unsigned int _g_init = conf->getGain()/6; // из инициализационного файла
+		//_g = (_g < _g_init) ? _g : _g_init;	// если было меньше, ставим меньшее
+		_g = _g_init;
 		if(_g > 7) _g = 7;
 
 		_att = static_cast<char>(conf->getAttenuation());
@@ -591,6 +594,7 @@ namespace parus {
 	{
 		if(_hFile)
 			CloseHandle(_hFile);
+		_hFile = NULL;
 	}
 
 	// Усечение данных до char (сдвиг на 6 бит) и сохранение линии в файле.
@@ -682,6 +686,7 @@ namespace parus {
 					end = clock();
 					ms = 1000 * ((double)end - start) / cps; // ms
 				}
+				//while(READ_ISCOMPLETE(msTimeout) == NULL);
 
 				// Остановим АЦП
 				READ_ABORTIO();					
@@ -695,8 +700,8 @@ namespace parus {
 				{
 					// 1. Запись в журнал
 					std::stringstream ss;
-					ss << curFrq << '\t' << e.getHeightNumber() * ionogram->getHeightStep()  << '\t' 
-						<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
+					ss << curFrq << "--" << e.getHeightNumber() * ionogram->getHeightStep()  << "--" 
+						<< std::boolalpha << e.getOverflowRe() <<  "--" << e.getOverflowIm();
 					_log.push_back(ss.str());
 					// 2. Уменьшение усиления сигнала (выполняется для последующей настройки <adjustSounding> частоты зондирования)
 					_g--; // уменьшаем усиление на 6 дБ (вдвое по амплитуде)
@@ -732,7 +737,7 @@ namespace parus {
 
 		// Сохраним информацию о наступлении ограничения сигнала
 		std::vector<std::string> log = getLog();
-		std::ofstream output_file("parus.log");
+		std::ofstream output_file("ionogram.log");
 		std::ostream_iterator<std::string> output_iterator(output_file, "\n");
 		std::copy(log.begin(), log.end(), output_iterator);
 
@@ -774,6 +779,12 @@ namespace parus {
 	int parusWork::amplitudes(xml_unit* conf, unsigned dt)
 	{
 		xml_amplitudes* amplitudes = (xml_amplitudes*)conf;
+
+		// Массив информации об усилении на частотах зондирования.
+		// Начальная установка из конфигурационного файла.
+		unsigned int *_G_sounding = new unsigned int [amplitudes->getModulesCount()];
+		for(size_t i = 0; i < amplitudes->getModulesCount(); i++)
+			_G_sounding[i] = amplitudes->getGain();
 		
 		unsigned pfrq = amplitudes->getPulseFrq(); // Hz
 		DWORD msTimeout = static_cast<short>(1000./pfrq) - 5; // ms
@@ -787,49 +798,58 @@ namespace parus {
 		while(counter) // обрабатываем импульсы генератора
 		{
 			curFrq = amplitudes->getAmplitudesFrq(numFrq); // заданная частота зондирования
+			
+			// Реальное усиление приемника
+			unsigned char cur_gain = 46; // реальное усиление приёмника
+			// _att - ослабление (аттенюатор) 1/0 = вкл/выкл
+			if(_att) 
+				cur_gain -= 12;
+			//_g = conf.getGain()/6;	// ??? 6дБ = приращение в 4 раза по мощности
+			//if(_g > 7) _g = 7;
+			// min = +0 dB, max = +42 dB
+			cur_gain += (unsigned char)_g * 6;
+
+			_g = _G_sounding[numFrq];
 			adjustSounding(curFrq);
 
 			CBuffer buffer;
 			buffer.setSavedSize(amplitudes->getHeightCount());
 
-			for (unsigned k = 0; k < amplitudes->getPulseCount(); k++) // счётчик циклов суммирования на одной частоте
-			{
-				ASYNC_TRANSFER(); // запустим АЦП
+			ASYNC_TRANSFER(); // запустим АЦП
 				
-				// Цикл проверки до появления результатов в буфере.
-				// READ_BUFISCOMPLETE - сбоит на частоте 47 Гц
-				// Реализуем задержку и выход по процессорным часам.
-				clock_t end, start = clock();
-				double ms = 0;
-				int ii = 0;
-				long cps = CLOCKS_PER_SEC;
-				while(READ_ISCOMPLETE(msTimeout) == NULL || ms < msTimeout)
-				{
-					end = clock();
-					ms = 1000 * ((double)end - start) / cps; // ms
-				}
-
-				// Остановим АЦП
-				READ_ABORTIO();					
-
-				try
-				{
-					// Накапливаем результат
-					buffer += getBuffer();
-				}
-				catch(CADCOverflowException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
-				{
-					// 1. Запись в журнал
-					std::stringstream ss;
-					ss << curFrq << '\t' << e.getHeightNumber() * amplitudes->getHeightStep()  << '\t' 
-						<< std::boolalpha << e.getOverflowRe() <<  '\t' << e.getOverflowIm();
-					_log.push_back(ss.str());
-					// 2. Уменьшение усиления сигнала (выполняется для последующей настройки <adjustSounding> частоты зондирования)
-					_g--; // уменьшаем усиление на 6 дБ (вдвое по амплитуде)
-					adjustSounding(curFrq);
-				}
-				counter--; // приступаем к обработке следующего импульса
+			// Цикл проверки до появления результатов в буфере.
+			// READ_BUFISCOMPLETE - сбоит на частоте 47 Гц
+			// Реализуем задержку и выход по процессорным часам.
+			clock_t end, start = clock();
+			double ms = 0;
+			int ii = 0;
+			long cps = CLOCKS_PER_SEC;
+			while(READ_ISCOMPLETE(msTimeout) == NULL || ms < msTimeout)
+			{
+				end = clock();
+				ms = 1000 * ((double)end - start) / cps; // ms
 			}
+			//while(READ_ISCOMPLETE(msTimeout) == NULL);
+
+			// Остановим АЦП
+			READ_ABORTIO();					
+
+			try
+			{
+				// Накапливаем результат
+				buffer += getBuffer();
+			}
+			catch(CADCOverflowException &e) // Отлавливаем здесь только ошибки ограничения амплитуды.
+			{
+				// 1. Запись в журнал
+				std::stringstream ss;
+				ss << curFrq << "--" << e.getHeightNumber() * amplitudes->getHeightStep()  << "--" 
+					<< std::boolalpha << e.getOverflowRe() <<  "--" << e.getOverflowIm();
+				_log.push_back(ss.str());
+				// 2. Уменьшение усиления сигнала (выполняется для последующей настройки <adjustSounding> частоты зондирования)
+				_G_sounding[numFrq]--; // уменьшаем усиление на 6 дБ (вдвое по амплитуде)
+			}
+			counter--; // приступаем к обработке следующего импульса
 
 			// Сохранение линии в файле.
 			switch(amplitudes->getVersion())
@@ -837,8 +857,8 @@ namespace parus {
 				case 0: // ИПГ
 					//work->saveDirtyLine();
 					break;
-				case 1: // без упаковки данных (as is) и информации об усилении
-					buffer.prepareAmplitudes_Dirty(curFrq);
+				case 1: // без упаковки данных (as is) с информацией об усилении
+					buffer.prepareAmplitudes_Dirty(cur_gain);
 					break;
 				case 2: // упаковка данных - существенное уменьшение размера файла
 					//work->saveTheresholdLine();
@@ -853,7 +873,7 @@ namespace parus {
 
 		// Сохраним информацию о наступлении ограничения сигнала
 		std::vector<std::string> log = getLog();
-		std::ofstream output_file("parus.log");
+		std::ofstream output_file("amplitudes.log");
 		std::ostream_iterator<std::string> output_iterator(output_file, "\n");
 		std::copy(log.begin(), log.end(), output_iterator);
 
